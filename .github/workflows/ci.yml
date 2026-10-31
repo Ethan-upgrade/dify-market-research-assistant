@@ -1,10 +1,4 @@
-﻿# 目标路径：.github/workflows/ci.yml
-# 推送到 GitHub 时，若 token 缺少 workflow scope，GitHub 会拒绝包含该文件的推送。
-# 启用方式（二选一）：
-#   1) gh auth refresh -s workflow  &&  mkdir -p .github/workflows && cp ci/github-actions-ci.yml .github/workflows/ci.yml && git add . && git commit -m 'ci' && git push
-#   2) 直接在 GitHub 网页上新建 .github/workflows/ci.yml，粘贴本文件内容
-
-name: ci
+﻿name: ci
 
 on:
   push:
