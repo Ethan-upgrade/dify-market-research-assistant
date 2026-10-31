@@ -1,4 +1,4 @@
-# 市场调研报告助手 · Market Research Assistant
+﻿# 市场调研报告助手 · Market Research Assistant
 
 把一句话需求（「调研 Nespresso 胶囊咖啡在中国市场的竞争格局」）变成一份**带编号引用、可溯源**的七章市场调研报告。
 
@@ -57,7 +57,7 @@ python -m mra --search fixture --fixture tests/fixtures/corpus.json `
     "调研胶囊咖啡在中国市场的竞争格局" --depth 2
 ```
 
-产物见 [`examples/offline-demo-report.md`](examples/offline-demo-report.md)（本仓库内置的一次真实运行结果，10 条来源全部被正文引用）。
+产物见 [`examples/offline-demo-report.md`](examples/offline-demo-report.md)（本仓库内置的一次真实运行结果，6 条来源全部被正文引用）。
 
 模型只要兼容 OpenAI 的 `/chat/completions` 就行：DeepSeek、OpenAI、通义、智谱、Ollama、vLLM、LM Studio 都能接，见 `.env.example` 里的注释。
 
@@ -156,7 +156,7 @@ python scripts\verify_published.py --base http://127.0.0.1:8080 --mode smoke
 ## 6. 已验证什么
 
 - `standalone/tests` 31 个用例全绿（节点逻辑、Tavily 请求体逐字段契约、离线回放、引用表排序与剔除）。
-- `examples/offline-demo-report.md` 是本仓库中真实跑出来的产物：7.0k 字、10 条来源、正文引用 10 条、零悬空编号。
+- `examples/offline-demo-report.md` 是本仓库中真实跑出来的产物：7.6k 字、6 条来源、正文引用 6 条、零悬空编号。
 - DSL 三版在 Dify 1.9.1 上导入/发布/端到端实跑通过（含知识库接入与发布版 API 调用），细节见 `docs/` 与 `scripts/`。
 
 ---
