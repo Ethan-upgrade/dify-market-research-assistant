@@ -12,6 +12,19 @@
 
 ## route B：三分钟出第一份报告
 
+**方式一（推荐）：填一次 `.env`，之后不用再 export**
+
+```powershell
+cd dify-market-research-assistant
+copy .env.example .env      # 用记事本填 MRA_API_KEY 与 TAVILY_API_KEY
+cd standalone
+python -m mra "调研 Nespresso 胶囊咖啡在中国市场的竞争格局" --market 中国大陆 -o nespresso.md
+```
+
+`.env` 会在启动时自动加载；同名的 shell 环境变量优先。
+
+**方式二：直接设环境变量（临时生效）**
+
 ```powershell
 cd standalone
 $env:MRA_BASE_URL = "https://api.deepseek.com/v1"

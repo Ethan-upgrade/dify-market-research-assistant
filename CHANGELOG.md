@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 3.0.2
+
+- **修**：`.env` 之前只是文档承诺，代码并不读取。现在 `config.load_env_file()` 会自动加载（当前目录 → 上级 3 层），shell 环境变量优先，不依赖 python-dotenv。
+- 新增 `tests/test_config.py`：5 个用例（读取、优先级、引号剥离、缺文件、值内 `#`）。总计 44 个用例。
+- CI 增加 `.env` 相关测试。
+- 仓库根提供一个已配置本机网关的 `.env`（gitignore，不入库）。
+
 ## 3.0.1
 
 - 新增 `standalone/tests/test_pipeline.py`：8 个编排层用例（正常成稿 / 追问分支 / 跑题拦截 / 轮数上限 / 引用裁剪 / 引擎摘要编号）。总计 39 个用例。

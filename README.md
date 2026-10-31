@@ -49,6 +49,7 @@ python -m mra "调研胶囊咖啡在中国市场的竞争格局，用于新品�
 ```
 
 不需要任何第三方包：只用标准库（`urllib` / `json` / `re`）。
+仓库根的 `.env` 会被**自动加载**（shell 里的环境变量优先），所以填一次就够，不用每次 export。
 
 **没有 Tavily Key 也能先看效果**——用内置离线语料回放：
 
@@ -80,7 +81,7 @@ python -m mra --search fixture --fixture tests/fixtures/corpus.json `
 │  │  ├─ llm.py        # OpenAI 兼容 chat 客户端（含重试）
 │  │  ├─ pipeline.py   # 编排：需求解析 → 递归检索 → 撰写 → 引用表
 │  │  └─ cli.py        # 命令行入口
-│  └─ tests/           # 39 个用例：节点逻辑 + 编排链路 + Tavily 契约 + 离线回放
+│  └─ tests/           # 44 个用例：节点逻辑/编排/契约/.env 加载
 ├─ docs/                                  # 部署 / 架构 / 范围口径 / 排错 / 发布
 ├─ examples/                              # 实跑报告样例
 ├─ screenshots/                           # Dify 工作流截图
@@ -155,7 +156,7 @@ python scripts\verify_published.py --base http://127.0.0.1:8080 --mode smoke
 
 ## 6. 已验证什么
 
-- `standalone/tests` **39 个用例全绿**（节点逻辑、编排链路、Tavily 请求体逐字段契约、离线回放、引用表排序与剔除）。
+- `standalone/tests` **44 个用例全绿**（节点逻辑、编排链路、`.env` 加载、Tavily 请求体逐字段契约、离线回放、引用表排序与剔除）。
 - **GitHub Actions 已跑通**（Python 3.9 / 3.11 / 3.13 三档 + DSL 结构校验），最近一次 push 为绿。
 - **仓库里的 v3 DSL 在 Dify 1.9.1 上实测**：导入 → 26 节点全部实例化 → 模型接线 → 发布成功 → smoke 验证通过（走追问分支、无控制标记泄漏）。
 - **已发布版 full 回归**：14396 字 / 8 个二级标题 / 46 条来源（42 网页 + 4 知识库片段）/ 引用率 100% / 零悬空引用 / 零自造标注。

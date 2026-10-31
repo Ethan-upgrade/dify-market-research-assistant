@@ -4,6 +4,51 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field, asdict
+from pathlib import Path
+
+
+def _env_candidates() -> list:
+    """.env 的查找位置：当前目录 → 上级 1~3 层（兼容从仓库根或 standalone/ 下运行）。"""
+    cands = [Path.cwd() / ".env"]
+    here = Path(__file__).resolve()
+    for up in (2, 3, 4):
+        try:
+            cands.append(here.parents[up] / ".env")
+        except IndexError:
+            pass
+    return cands
+
+
+def load_env_file() -> str:
+    """极简 .env 加载器（不依赖 python-dotenv）。已存在的环境变量优先，不覆盖。
+
+    返回实际加载的文件路径，没找到返回空串。
+    """
+    seen = set()
+    for p in _env_candidates():
+        key = str(p.resolve()) if p.exists() else str(p)
+        if key in seen:
+            continue
+        seen.add(key)
+        if not p.is_file():
+            continue
+        try:
+            text = p.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for raw in text.splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            k = k.strip()
+            v = v.strip()
+            if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
+                v = v[1:-1]
+            if k and k not in os.environ:
+                os.environ[k] = v
+        return str(p)
+    return ""
 
 
 # ---------------------------------------------------------------- 范围选项
@@ -122,6 +167,8 @@ class RuntimeConfig:
 
     @classmethod
     def from_env(cls) -> "RuntimeConfig":
+        load_env_file()
+
         def g(*names, default=""):
             for n in names:
                 v = os.environ.get(n, "").strip()
