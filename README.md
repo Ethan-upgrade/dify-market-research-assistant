@@ -2,6 +2,9 @@
 
 把一句话需求（「调研 Nespresso 胶囊咖啡在中国市场的竞争格局」）变成一份**带编号引用、可溯源**的七章市场调研报告。
 
+> 仓库地址：https://github.com/Ethan-upgrade/dify-market-research-assistant
+> 上传/改名/私有化/开 CI 的操作见 [`docs/08-publish-github.md`](docs/08-publish-github.md)。
+
 本仓库提供**两种完全等价的实现**，你可以只用其中一种：
 
 | 路线 | 运行方式 | 适合谁 | 启动成本 |
@@ -78,11 +81,11 @@ python -m mra --search fixture --fixture tests/fixtures/corpus.json `
 │  │  ├─ pipeline.py   # 编排：需求解析 → 递归检索 → 撰写 → 引用表
 │  │  └─ cli.py        # 命令行入口
 │  └─ tests/           # 31 个用例：节点逻辑 + Tavily 请求契约 + 离线回放
-├─ docs/                                  # 部署 / 架构 / 范围口径 / 排错
+├─ docs/                                  # 部署 / 架构 / 范围口径 / 排错 / 发布
 ├─ examples/                              # 实跑报告样例
 ├─ screenshots/                           # Dify 工作流截图
 ├─ scripts/                               # Dify 侧运维脚本（导入/发布/验证/自启）
-└─ .github/workflows/ci.yml               # 单测 + DSL 结构校验
+└─ ci/github-actions-ci.yml               # CI 配置（启用方法见 docs/08）
 ```
 
 ---
