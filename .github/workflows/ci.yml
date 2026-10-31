@@ -61,3 +61,24 @@ jobs:
       - name: 校验 Python 语法
         run: |
           python -m py_compile scripts/*.py standalone/mra/*.py
+
+  tooling:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 校验 PowerShell 脚本语法（tools/ 与 scripts/）
+        shell: pwsh
+        run: |
+          $bad = 0
+          Get-ChildItem tools/*.ps1, scripts/*.ps1 -ErrorAction SilentlyContinue | ForEach-Object {
+            $errs = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errs)
+            if ($errs.Count -gt 0) {
+              $bad = 1
+              Write-Host "FAIL $($_.Name)"
+              $errs | ForEach-Object { Write-Host "  $($_.Message)" }
+            } else {
+              Write-Host "OK   $($_.Name)"
+            }
+          }
+          exit $bad

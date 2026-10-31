@@ -62,6 +62,16 @@ python -m mra --search fixture --fixture tests/fixtures/corpus.json `
 
 模型只要兼容 OpenAI 的 `/chat/completions` 就行：DeepSeek、OpenAI、通义、智谱、Ollama、vLLM、LM Studio 都能接，见 `.env.example` 里的注释。
 
+### 日常五种触发方式（详见 [docs/09-triggering.md](docs/09-triggering.md)）
+
+| 方式 | 命令 | 场景 |
+|---|---|---|
+| 命令行 | `python -m mra "调研 XX 市场" --depth 3 -o r.md` | 随手问 |
+| 双击 | `tools\run-report.cmd` | 不想敲命令，问几个问题就出报告 |
+| 批量 | 编辑 `topics.txt` → `tools\batch-run.cmd` | 一次跑一串主题 |
+| 定时 | `tools\install-task.ps1 -Time 09:00 -Weekly Monday` | 周报自动出 |
+| 网页 / API | http://127.0.0.1:8080/apps | 团队共用、给别的系统调 |
+
 ---
 
 ## 2. 仓库结构
@@ -86,6 +96,9 @@ python -m mra --search fixture --fixture tests/fixtures/corpus.json `
 ├─ examples/                              # 实跑报告样例
 ├─ screenshots/                           # Dify 工作流截图
 ├─ scripts/                               # Dify 侧运维脚本（导入/发布/验证/自启）
+├─ tools/                                 # 日常触发：双击跑 / 批量 / 定时任务 / mra 命令
+├─ topics.txt                             # 批量跑的主题清单（一行一个）
+├─ reports/                               # 报告输出目录（已 gitignore）
 └─ .github/workflows/ci.yml               # 单测 + DSL 结构校验（已在跑）
 ```
 

@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 3.1.0
+
+**新增日常触发工具（tools/）** —— 让「跑一份调研」变成双击或一条命令。
+
+- `tools/run-report.ps1` / `.cmd`：交互式（主题/地区/目的/深度），自动存 `reports/` 并打开。
+- `tools/batch.ps1` / `batch-run.cmd`：按 `topics.txt` 批量跑，编号命名、`run-log.txt` 记流水。
+- `tools/install-task.ps1`：注册/删除 Windows 计划任务（每周/每天），支持 `-WhatIf` 预览。
+- `tools/mra.cmd`：任意目录可用 `mra "..."`。
+- `.ps1` 统一存为 **UTF-8 with BOM**，否则 Windows PowerShell 5.1 会把中文读成乱码并报语法错。
+- CI 增加 PowerShell 语法检查 job。
+- 文档：新增 `docs/09-triggering.md`（五种触发方式的取舍）。
+
 ## 3.0.2
 
 - **修**：`.env` 之前只是文档承诺，代码并不读取。现在 `config.load_env_file()` 会自动加载（当前目录 → 上级 3 层），shell 环境变量优先，不依赖 python-dotenv。
