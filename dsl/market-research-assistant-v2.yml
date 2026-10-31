@@ -1,0 +1,1116 @@
+app:
+  description: 查询分解 + 要点提炼 + 缺口下钻的深度调研版
+  icon: 📊
+  icon_background: '#E0F2FE'
+  mode: advanced-chat
+  name: 市场调研报告助手 v2
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: Tavily 搜索 API Key，在 https://tavily.com 注册后获取，格式形如 tvly-xxxxxxxx
+    id: 3f7b2c41-9d5e-4a8c-b1f6-2e4d7a9c0b13
+    name: TAVILY_API_KEY
+    selector:
+    - env
+    - TAVILY_API_KEY
+    value: ''
+    value_type: secret
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: '👋 我是市场调研报告助手。
+
+
+      请用一句话告诉我你要调研什么，例如：
+
+      「帮我看看国内新能源汽车充电桩市场的竞争格局和机会点」
+
+
+      我的工作流程是：
+
+      1. 先和你确认「调研对象、目标市场、目标客群、调研目的」这几个关键信息；
+
+      2. 再联网检索公开资料（行业报告、财报、新闻、政策）；
+
+      3. 最后按「执行摘要 / 市场规模 / 竞争格局 / 用户洞察 / 趋势 / 风险 / 建议」七个章节输出报告。
+
+      '
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions:
+    - 帮我调研国内新能源汽车充电桩市场
+    - 分析一下中国扫地机器人市场的竞争格局
+    - 我想进入东南亚跨境电商，先做一份市场进入调研
+    - 评估一下 AI 编程工具在国内的付费意愿
+    suggested_questions_after_answer:
+      enabled: true
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: start-source->llm_brief-target
+      source: start
+      sourceHandle: source
+      target: llm_brief
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: if-else
+      id: llm_brief-source->if_ready-target
+      source: llm_brief
+      sourceHandle: source
+      target: if_ready
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: answer
+      id: if_ready-false->answer_clarify-target
+      source: if_ready
+      sourceHandle: 'false'
+      target: answer_clarify
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: if_ready-true->llm_plan-target
+      source: if_ready
+      sourceHandle: 'true'
+      target: llm_plan
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: llm_plan-source->code_split-target
+      source: llm_plan
+      sourceHandle: source
+      target: code_split
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: http-request
+      id: code_split-source->search_1-target
+      source: code_split
+      sourceHandle: source
+      target: search_1
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: http-request
+      id: code_split-source->search_2-target
+      source: code_split
+      sourceHandle: source
+      target: search_2
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: http-request
+      id: code_split-source->search_3-target
+      source: code_split
+      sourceHandle: source
+      target: search_3
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: llm
+      id: search_1-source->llm_reflect-target
+      source: search_1
+      sourceHandle: source
+      target: llm_reflect
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: llm
+      id: search_2-source->llm_reflect-target
+      source: search_2
+      sourceHandle: source
+      target: llm_reflect
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: llm
+      id: search_3-source->llm_reflect-target
+      source: search_3
+      sourceHandle: source
+      target: llm_reflect
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: llm_reflect-source->code_followup-target
+      source: llm_reflect
+      sourceHandle: source
+      target: code_followup
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: http-request
+      id: code_followup-source->search_4-target
+      source: code_followup
+      sourceHandle: source
+      target: search_4
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: http-request
+      id: code_followup-source->search_5-target
+      source: code_followup
+      sourceHandle: source
+      target: search_5
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: template-transform
+      id: llm_reflect-source->tmpl_merge-target
+      source: llm_reflect
+      sourceHandle: source
+      target: tmpl_merge
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: template-transform
+      id: search_4-source->tmpl_merge-target
+      source: search_4
+      sourceHandle: source
+      target: tmpl_merge
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: template-transform
+      id: search_5-source->tmpl_merge-target
+      source: search_5
+      sourceHandle: source
+      target: tmpl_merge
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: template-transform
+        targetType: llm
+      id: tmpl_merge-source->llm_report-target
+      source: tmpl_merge
+      sourceHandle: source
+      target: llm_report
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: llm_report-source->answer_report-target
+      source: llm_report
+      sourceHandle: source
+      target: answer_report
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables: []
+      height: 54
+      id: start
+      position:
+        x: 40
+        y: 300
+      positionAbsolute:
+        x: 40
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 把一句话需求转成可执行调研简报，并判断信息是否充分
+        selected: false
+        title: ① 调研需求解析
+        type: llm
+        model:
+          provider: ''
+          name: ''
+          mode: chat
+          completion_params:
+            temperature: 0.3
+            max_tokens: 4096
+        prompt_template:
+        - role: system
+          text: '你是资深市场研究总监，负责把客户的一句话需求，转成一份可以直接执行的调研简报。
+
+
+            ## 第一步：判断信息是否充分
+
+            判定标准：必须同时明确「调研对象（行业 / 品类 / 公司 / 产品）」和「目标市场（国家或地区）」。
+
+            如果本会话的历史消息里已经出现过这些信息，直接沿用，不要再追问。
+
+
+            ## 第二步：按判断结果输出
+
+            - 信息充分 → 第一行只写 <!--READY-->，从第二行开始输出调研简报。
+
+            - 信息不充分 → 第一行只写 <!--CLARIFY-->，从第二行开始只写一句最关键的追问（一次只问一个问题，可以给 2~3 个选项方便用户选择）。
+
+
+            ## 信息充分时的简报格式（严格照抄字段名，不要额外解释）
+
+            调研主题：<一句话说清要研究什么>
+
+            所属行业：<行业 / 品类>
+
+            目标市场：<国家或地区>
+
+            目标客群：<人群画像>
+
+            调研目的：<这份报告支撑什么决策>
+
+            时间范围：<需要的数据时效，例如「近 12 个月」>
+
+            核心问题：
+
+            1. <问题一>
+
+            2. <问题二>
+
+            3. <问题三>
+
+            4. <问题四>
+
+            建议数据来源：<公开报告 / 财报 / 行业新闻 / 电商评论 / 政策文件 等>
+
+
+            ## 约束
+
+            - 全程使用简体中文。
+
+            - 用户没有提到的关键事实不要编造，不确定的维度写「待确认」。
+
+            - <!--READY--> 和 <!--CLARIFY--> 前后不要添加任何其他文字。'
+        - role: user
+          text: 用户需求：{{#sys.query#}}
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: true
+            size: 10
+        context:
+          enabled: false
+          variable_selector: []
+        vision:
+          enabled: false
+        variables: []
+      height: 98
+      id: llm_brief
+      position:
+        x: 340
+        y: 300
+      positionAbsolute:
+        x: 340
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 判断调研简报是否可以直接进入检索与成稿
+        selected: false
+        title: ② 信息是否充分
+        type: if-else
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: contains
+            id: 8c1d4e27-6b93-4f5a-a2e8-73f0b9c4d156
+            value: <!--READY-->
+            varType: string
+            variable_selector:
+            - llm_brief
+            - text
+          id: 'true'
+          logical_operator: and
+      height: 126
+      id: if_ready
+      position:
+        x: 620
+        y: 300
+      positionAbsolute:
+        x: 620
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#llm_brief.text#}}'
+        desc: 信息不足时，直接向用户追问最关键的一项
+        selected: false
+        title: 追问澄清
+        type: answer
+        variables: []
+      height: 105
+      id: answer_clarify
+      position:
+        x: 900
+        y: 560
+      positionAbsolute:
+        x: 900
+        y: 560
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 按简报拆出 3 条互补检索式：规模 / 格局 / 价格与政策
+        selected: false
+        title: ② 检索式规划
+        type: llm
+        model:
+          provider: ''
+          name: ''
+          mode: chat
+          completion_params:
+            temperature: 0.4
+            max_tokens: 4096
+        prompt_template:
+        - role: system
+          text: '你是资深市场研究分析师。根据调研简报，设计 3 条互补的联网检索式。
+
+
+            ## 要求
+
+            - 三条检索式分别覆盖：① 市场规模与增速 ② 竞争格局与份额 ③ 价格、渠道、政策或用户需求
+
+            - 必须带上「地区 + 行业词 + 维度关键词 + 年份」，例如：中国 充电桩 市场规模 增长率 2024
+
+            - 每条 8~30 个字，不要问句，不要引号，不要编号，不要解释，不要 Markdown
+
+            - 三条之间不要重复用词
+
+
+            ## 输出
+
+            只输出 3 行，每行一条检索式，不要有任何前后缀。'
+        - role: user
+          text: '调研简报：
+
+            {{#llm_brief.text#}}'
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: true
+            size: 10
+        context:
+          enabled: false
+          variable_selector: []
+        vision:
+          enabled: false
+        variables: []
+      height: 98
+      id: llm_plan
+      position:
+        x: 620
+        y: 60
+      positionAbsolute:
+        x: 620
+        y: 60
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 把 3 行文本拆成三条独立变量；规划失败时按简报自动兜底
+        selected: false
+        title: ③ 拆分检索式
+        type: code
+        variables:
+        - variable: plan
+          value_selector:
+          - llm_plan
+          - text
+        - variable: brief
+          value_selector:
+          - llm_brief
+          - text
+        - variable: fallback
+          value_selector:
+          - sys
+          - query
+        code_language: python3
+        code: "def main(plan: str, brief: str, fallback: str) -> dict:\n    raw = (plan or \"\").replace(\"\\r\", \"\")\n    lines = []\n    for line in raw.split(\"\\n\"):\n        s = line.strip().strip(\"-*0123456789.、 []()\").strip()\n        if len(s) < 4:\n            continue\n        for sep in (\"：\", \":\"):\n            if s.startswith(\"检索式\") and sep in s:\n                s = s.split(sep, 1)[1].strip()\n        lines.append(s)\n\n    uniq = []\n    for s in lines:\n        if s and s not in uniq:\n            uniq.append(s)\n\n    # 规划节点没吐出有效内容时，用简报里的行业与市场拼出三条差异化检索式。\n    # 绝不能退化成三条一模一样的查询，否则三份材料全是重复内容。\n    if len(uniq) < 3:\n        base = []\n        for line in (brief or \"\").splitlines():\n            s = line.strip()\n            if s.startswith(\"所属行业：\"):\n                base.append(s.split(\"：\", 1)[1].strip())\n            elif s.startswith(\"目标市场：\"):\n                base.append(s.split(\"：\", 1)[1].strip())\n        prefix = \" \".join(base).strip() or (fallback or \"市场调研\")\n        dims = [\"市场规模 增长率 行业数据\", \"竞争格局 市场份额 主要厂商\", \"价格 渠道 政策 用户需求\"]\n        uniq = [((prefix + \" \" + d)[:60]) for d in dims]\n\n    while len(uniq) < 3:\n        uniq.append(uniq[-1])\n\n    return {\"q1\": uniq[0], \"q2\": uniq[1], \"q3\": uniq[2]}\n"
+        outputs:
+          q1:
+            type: string
+            children: null
+          q2:
+            type: string
+            children: null
+          q3:
+            type: string
+            children: null
+      height: 98
+      id: code_split
+      position:
+        x: 900
+        y: 60
+      positionAbsolute:
+        x: 900
+        y: 60
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 第 1 条检索式：规模与增速
+        selected: false
+        title: ④ 检索 · 市场规模
+        type: http-request
+        method: post
+        url: https://api.tavily.com/search
+        authorization:
+          type: no-auth
+        headers: ''
+        params: ''
+        body:
+          type: json
+          data:
+          - key: ''
+            type: text
+            value: "{\n  \"api_key\": \"{{#env.TAVILY_API_KEY#}}\",\n  \"query\": \"{{#code_split.q1#}} 行业数据 报告\",\n  \"search_depth\": \"advanced\",\n  \"topic\": \"general\",\n  \"max_results\": 6,\n  \"include_answer\": true,\n  \"include_raw_content\": false\n}"
+        timeout:
+          connect: 10
+          read: 60
+          write: 30
+        retry_config:
+          enabled: true
+          max_retries: 2
+          retry_interval: 1000
+          exponential_backoff:
+            enabled: true
+            multiplier: 2
+            max_interval: 5000
+        ssl_verify: true
+        error_strategy: default-value
+        default_value_dict:
+          body: ''
+          status_code: 0
+      height: 98
+      id: search_1
+      position:
+        x: 1180
+        y: -80
+      positionAbsolute:
+        x: 1180
+        y: -80
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 第 2 条检索式：竞争与份额
+        selected: false
+        title: ⑤ 检索 · 竞争格局
+        type: http-request
+        method: post
+        url: https://api.tavily.com/search
+        authorization:
+          type: no-auth
+        headers: ''
+        params: ''
+        body:
+          type: json
+          data:
+          - key: ''
+            type: text
+            value: "{\n  \"api_key\": \"{{#env.TAVILY_API_KEY#}}\",\n  \"query\": \"{{#code_split.q2#}} 行业数据 报告\",\n  \"search_depth\": \"advanced\",\n  \"topic\": \"general\",\n  \"max_results\": 6,\n  \"include_answer\": true,\n  \"include_raw_content\": false\n}"
+        timeout:
+          connect: 10
+          read: 60
+          write: 30
+        retry_config:
+          enabled: true
+          max_retries: 2
+          retry_interval: 1000
+          exponential_backoff:
+            enabled: true
+            multiplier: 2
+            max_interval: 5000
+        ssl_verify: true
+        error_strategy: default-value
+        default_value_dict:
+          body: ''
+          status_code: 0
+      height: 98
+      id: search_2
+      position:
+        x: 1180
+        y: 100
+      positionAbsolute:
+        x: 1180
+        y: 100
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 第 3 条检索式：价格 / 渠道 / 政策
+        selected: false
+        title: ⑥ 检索 · 价格渠道政策
+        type: http-request
+        method: post
+        url: https://api.tavily.com/search
+        authorization:
+          type: no-auth
+        headers: ''
+        params: ''
+        body:
+          type: json
+          data:
+          - key: ''
+            type: text
+            value: "{\n  \"api_key\": \"{{#env.TAVILY_API_KEY#}}\",\n  \"query\": \"{{#code_split.q3#}} 行业数据 报告\",\n  \"search_depth\": \"advanced\",\n  \"topic\": \"general\",\n  \"max_results\": 6,\n  \"include_answer\": true,\n  \"include_raw_content\": false\n}"
+        timeout:
+          connect: 10
+          read: 60
+          write: 30
+        retry_config:
+          enabled: true
+          max_retries: 2
+          retry_interval: 1000
+          exponential_backoff:
+            enabled: true
+            multiplier: 2
+            max_interval: 5000
+        ssl_verify: true
+        error_strategy: default-value
+        default_value_dict:
+          body: ''
+          status_code: 0
+      height: 98
+      id: search_3
+      position:
+        x: 1180
+        y: 280
+      positionAbsolute:
+        x: 1180
+        y: 280
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 把三份原始结果压缩成带来源的要点，并指出还缺什么
+        selected: false
+        title: ⑦ 要点提炼 + 缺口识别
+        type: llm
+        model:
+          provider: ''
+          name: ''
+          mode: chat
+          completion_params:
+            temperature: 0.3
+            max_tokens: 8192
+        prompt_template:
+        - role: system
+          text: '你是资深市场研究分析师。下面给你三组联网检索的原始 JSON 结果，请完成两件事。
+
+
+            ## 任务一：提炼材料要点
+
+            - 输出 8~14 条要点，每条一句话，控制在 60 字以内
+
+            - 必须保留具体数字、比例、年份、公司名；没有数字的结论要写「（无数据）」
+
+            - 每条结尾用括号标注来源，格式：（来源：机构或媒体名，年份）
+
+            - 如果几份材料互相矛盾，单独用一条要点把矛盾写出来
+
+            - 如果材料与调研主题明显不相关，必须第一句就指出来
+
+
+            ## 任务二：识别缺口
+
+            - 指出为了写好这份报告，材料里仍然缺失的关键信息（最多 3 条）
+
+            - 针对这些缺口，写 2 条补充检索式
+
+
+            ## 输出格式（严格遵守，不要加别的段落）
+
+            【材料要点】
+
+            - 要点1（来源：xx，2024）
+
+            - 要点2（来源：yy，2025）
+
+            【缺口】
+
+            - 缺口1
+
+            - 缺口2
+
+            【补充检索】
+
+            QUERY1: <检索式>
+
+            QUERY2: <检索式>
+
+
+            ## 约束
+
+            - 简体中文
+
+            - 只依据给你的材料，不要补充你自己的行业知识
+
+            - QUERY1 / QUERY2 后面必须是能直接丢进搜索引擎的短句，不要解释'
+        - role: user
+          text: '调研简报：
+
+            {{#llm_brief.text#}}
+
+
+            === 材料 A ===
+
+            {{#search_1.body#}}
+
+
+            === 材料 B ===
+
+            {{#search_2.body#}}
+
+
+            === 材料 C ===
+
+            {{#search_3.body#}}'
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: true
+            size: 10
+        context:
+          enabled: false
+          variable_selector: []
+        vision:
+          enabled: false
+        variables: []
+      height: 98
+      id: llm_reflect
+      position:
+        x: 1480
+        y: 60
+      positionAbsolute:
+        x: 1480
+        y: 60
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 从反思结果里取出 2 条补充检索式；缺失时按主题兜底
+        selected: false
+        title: ⑧ 拆分补充检索式
+        type: code
+        variables:
+        - variable: reflect
+          value_selector:
+          - llm_reflect
+          - text
+        - variable: fallback
+          value_selector:
+          - sys
+          - query
+        code_language: python3
+        code: "def main(reflect: str, fallback: str) -> dict:\n    raw = (reflect or \"\").replace(\"\\r\", \"\")\n    found = []\n    for line in raw.split(\"\\n\"):\n        s = line.strip()\n        up = s.upper()\n        if up.startswith(\"QUERY\") or up.startswith(\"补充检索\"):\n            for sep in (\"：\", \":\"):\n                if sep in s:\n                    s = s.split(sep, 1)[1].strip()\n                    break\n            s = s.strip(\" -•*[]()\")\n            if len(s) >= 4 and s.upper() not in (\"QUERY1\", \"QUERY2\"):\n                found.append(s)\n\n    uniq = []\n    for s in found:\n        if s not in uniq:\n            uniq.append(s)\n\n    if len(uniq) < 2:\n        base = (fallback or \"该市场\").strip()[:40]\n        for s in [base + \" 最新 数据 增速\", base + \" 份额 排名 价格\"]:\n            if len(uniq) >= 2:\n                break\n            if s not in uniq:\n                uniq.append(s)\n\n    while len(uniq) < 2:\n        uniq.append(uniq[-1] if uniq else \"\")\n\n    return {\"q1\": uniq[0], \"q2\": uniq[1]}\n"
+        outputs:
+          q1:
+            type: string
+            children: null
+          q2:
+            type: string
+            children: null
+      height: 98
+      id: code_followup
+      position:
+        x: 1760
+        y: 60
+      positionAbsolute:
+        x: 1760
+        y: 60
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 第二轮下钻：填补第一个缺口
+        selected: false
+        title: ⑨ 补充检索 · 缺口一
+        type: http-request
+        method: post
+        url: https://api.tavily.com/search
+        authorization:
+          type: no-auth
+        headers: ''
+        params: ''
+        body:
+          type: json
+          data:
+          - key: ''
+            type: text
+            value: "{\n  \"api_key\": \"{{#env.TAVILY_API_KEY#}}\",\n  \"query\": \"{{#code_followup.q1#}} 行业数据 报告\",\n  \"search_depth\": \"advanced\",\n  \"topic\": \"general\",\n  \"max_results\": 6,\n  \"include_answer\": true,\n  \"include_raw_content\": false\n}"
+        timeout:
+          connect: 10
+          read: 60
+          write: 30
+        retry_config:
+          enabled: true
+          max_retries: 2
+          retry_interval: 1000
+          exponential_backoff:
+            enabled: true
+            multiplier: 2
+            max_interval: 5000
+        ssl_verify: true
+        error_strategy: default-value
+        default_value_dict:
+          body: ''
+          status_code: 0
+      height: 98
+      id: search_4
+      position:
+        x: 2040
+        y: -40
+      positionAbsolute:
+        x: 2040
+        y: -40
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 第二轮下钻：填补第二个缺口
+        selected: false
+        title: ⑩ 补充检索 · 缺口二
+        type: http-request
+        method: post
+        url: https://api.tavily.com/search
+        authorization:
+          type: no-auth
+        headers: ''
+        params: ''
+        body:
+          type: json
+          data:
+          - key: ''
+            type: text
+            value: "{\n  \"api_key\": \"{{#env.TAVILY_API_KEY#}}\",\n  \"query\": \"{{#code_followup.q2#}} 行业数据 报告\",\n  \"search_depth\": \"advanced\",\n  \"topic\": \"general\",\n  \"max_results\": 6,\n  \"include_answer\": true,\n  \"include_raw_content\": false\n}"
+        timeout:
+          connect: 10
+          read: 60
+          write: 30
+        retry_config:
+          enabled: true
+          max_retries: 2
+          retry_interval: 1000
+          exponential_backoff:
+            enabled: true
+            multiplier: 2
+            max_interval: 5000
+        ssl_verify: true
+        error_strategy: default-value
+        default_value_dict:
+          body: ''
+          status_code: 0
+      height: 98
+      id: search_5
+      position:
+        x: 2040
+        y: 160
+      positionAbsolute:
+        x: 2040
+        y: 160
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 把第一轮要点与第二轮原始结果拼成给撰写节点用的材料包
+        selected: false
+        title: ⑪ 汇总全部材料
+        type: template-transform
+        template: '{% if learnings or m4 or m5 %}
+
+          === 第一轮：已提炼的要点 ===
+
+          {{ learnings }}
+
+
+          === 第二轮：补充检索原始结果 ===
+
+          --- 补充材料 D ---
+
+          {{ m4 }}
+
+
+          --- 补充材料 E ---
+
+          {{ m5 }}
+
+          {% else %}
+
+          （本次联网检索没有返回任何材料：请确认应用环境变量 TAVILY_API_KEY 已填写有效 Key，且容器可访问 api.tavily.com）
+
+          {% endif %}'
+        variables:
+        - variable: learnings
+          value_selector:
+          - llm_reflect
+          - text
+        - variable: m4
+          value_selector:
+          - search_4
+          - body
+        - variable: m5
+          value_selector:
+          - search_5
+          - body
+      height: 54
+      id: tmpl_merge
+      position:
+        x: 2320
+        y: 60
+      positionAbsolute:
+        x: 2320
+        y: 60
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 按固定七章结构输出可交付报告
+        selected: false
+        title: ⑫ 撰写调研报告
+        type: llm
+        model:
+          provider: ''
+          name: ''
+          mode: chat
+          completion_params:
+            temperature: 0.7
+            max_tokens: 16384
+        prompt_template:
+        - role: system
+          text: '你是顶级咨询公司的市场研究总监，现在要交付一份可直接给决策层看的市场调研报告。
+
+
+            ## 七章结构（标题固定，顺序固定）
+
+            ## 一、执行摘要
+
+            ## 二、市场规模与增长
+
+            ## 三、竞争格局
+
+            ## 四、目标用户与需求洞察
+
+            ## 五、驱动因素与趋势
+
+            ## 六、风险与不确定性
+
+            ## 七、结论与行动建议
+
+
+            ## 硬性要求
+
+            1. 每个关键数字后面必须标注来源，格式（来源：机构，年份）。
+
+            2. 材料里没有的数字，写「材料未覆盖，待核实」。绝对不允许自己估算或编造数字。
+
+            3. 材料之间互相矛盾的，不要自己挑一个，要在正文里指出来并说明哪个更可信、为什么。
+
+            4. 如果材料里出现明显的单位错误或数量级矛盾，必须点名提醒「勿直接引用」。
+
+            5. 表格优先于长段落：市场规模、竞争格局、玩家对比都尽量用表格。
+
+            6. 执行摘要写成 5~6 条带结论的判断，不要写成目录复述。
+
+            7. 第七章的行动建议要区分优先级（P0/P1/P2），每条都要写清依据。
+
+            8. 最后单独加一节「## 参考来源」，把材料里出现过的机构与报告名称按顺序列出来。
+
+
+            ## 风格
+
+            - 简体中文，咨询报告口吻，不要「首先/其次/总之」这种水词
+
+            - 结论先行，敢下判断，但判断必须能追溯到材料
+
+            - 全文 3000~5000 字'
+        - role: user
+          text: '调研简报：
+
+            {{#llm_brief.text#}}
+
+
+            原始需求：{{#sys.query#}}
+
+
+            === 检索材料 ===
+
+            {{#tmpl_merge.output#}}'
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: true
+            size: 10
+        context:
+          enabled: false
+          variable_selector: []
+        vision:
+          enabled: false
+        variables: []
+      height: 98
+      id: llm_report
+      position:
+        x: 2600
+        y: 60
+      positionAbsolute:
+        x: 2600
+        y: 60
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#llm_report.text#}}'
+        desc: 把报告直接返回给用户
+        selected: false
+        title: ⑬ 输出报告
+        type: answer
+        variables: []
+      height: 105
+      id: answer_report
+      position:
+        x: 2880
+        y: 60
+      positionAbsolute:
+        x: 2880
+        y: 60
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.45

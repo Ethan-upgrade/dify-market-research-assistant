@@ -1,0 +1,558 @@
+app:
+  description: 面向市场调研的 AI 报告助手：先澄清调研需求，再联网检索公开资料，最后按七个章节生成可交付的调研报告。
+  icon: 📊
+  icon_background: '#E0F2FE'
+  mode: advanced-chat
+  name: 市场调研报告助手
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: Tavily 搜索 API Key，在 https://tavily.com 注册后获取，格式形如 tvly-xxxxxxxx
+    id: 3f7b2c41-9d5e-4a8c-b1f6-2e4d7a9c0b13
+    name: TAVILY_API_KEY
+    selector:
+    - env
+    - TAVILY_API_KEY
+    value: ''
+    value_type: secret
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: |
+      👋 我是市场调研报告助手。
+
+      请用一句话告诉我你要调研什么，例如：
+      「帮我看看国内新能源汽车充电桩市场的竞争格局和机会点」
+
+      我的工作流程是：
+      1. 先和你确认「调研对象、目标市场、目标客群、调研目的」这几个关键信息；
+      2. 再联网检索公开资料（行业报告、财报、新闻、政策）；
+      3. 最后按「执行摘要 / 市场规模 / 竞争格局 / 用户洞察 / 趋势 / 风险 / 建议」七个章节输出报告。
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions:
+    - 帮我调研国内新能源汽车充电桩市场
+    - 分析一下中国扫地机器人市场的竞争格局
+    - 我想进入东南亚跨境电商，先做一份市场进入调研
+    - 评估一下 AI 编程工具在国内的付费意愿
+    suggested_questions_after_answer:
+      enabled: true
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: start-source-llm_brief-target
+      source: start
+      sourceHandle: source
+      target: llm_brief
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: if-else
+      id: llm_brief-source-if_ready-target
+      source: llm_brief
+      sourceHandle: source
+      target: if_ready
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: http-request
+      id: if_ready-true-http_market-target
+      source: if_ready
+      sourceHandle: 'true'
+      target: http_market
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: http-request
+      id: if_ready-true-http_comp-target
+      source: if_ready
+      sourceHandle: 'true'
+      target: http_comp
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: template-transform
+      id: http_market-source-tmpl_merge-target
+      source: http_market
+      sourceHandle: source
+      target: tmpl_merge
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: template-transform
+      id: http_comp-source-tmpl_merge-target
+      source: http_comp
+      sourceHandle: source
+      target: tmpl_merge
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: template-transform
+        targetType: llm
+      id: tmpl_merge-source-llm_report-target
+      source: tmpl_merge
+      sourceHandle: source
+      target: llm_report
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: llm_report-source-answer_report-target
+      source: llm_report
+      sourceHandle: source
+      target: answer_report
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: answer
+      id: if_ready-false-answer_clarify-target
+      source: if_ready
+      sourceHandle: 'false'
+      target: answer_clarify
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables: []
+      height: 54
+      id: start
+      position:
+        x: 30
+        y: 300
+      positionAbsolute:
+        x: 30
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 把用户的一句话需求转成可执行的调研简报，并判断信息是否充分
+        selected: false
+        title: ① 调研需求解析
+        type: llm
+        model:
+          provider: ''
+          name: ''
+          mode: chat
+          completion_params:
+            temperature: 0.3
+            max_tokens: 4096
+        prompt_template:
+        - role: system
+          text: |-
+            你是资深市场研究总监，负责把客户的一句话需求，转成一份可以直接执行的调研简报。
+
+            ## 第一步：判断信息是否充分
+            判定标准：必须同时明确「调研对象（行业 / 品类 / 公司 / 产品）」和「目标市场（国家或地区）」。
+            如果本会话的历史消息里已经出现过这些信息，直接沿用，不要再追问。
+
+            ## 第二步：按判断结果输出
+            - 信息充分 → 第一行只写 <!--READY-->，从第二行开始输出调研简报。
+            - 信息不充分 → 第一行只写 <!--CLARIFY-->，从第二行开始只写一句最关键的追问（一次只问一个问题，可以给 2~3 个选项方便用户选择）。
+
+            ## 信息充分时的简报格式（严格照抄字段名，不要额外解释）
+            调研主题：<一句话说清要研究什么>
+            所属行业：<行业 / 品类>
+            目标市场：<国家或地区>
+            目标客群：<人群画像>
+            调研目的：<这份报告支撑什么决策>
+            时间范围：<需要的数据时效，例如「近 12 个月」>
+            核心问题：
+            1. <问题一>
+            2. <问题二>
+            3. <问题三>
+            4. <问题四>
+            建议数据来源：<公开报告 / 财报 / 行业新闻 / 电商评论 / 政策文件 等>
+
+            ## 约束
+            - 全程使用简体中文。
+            - 用户没有提到的关键事实不要编造，不确定的维度写「待确认」。
+            - <!--READY--> 和 <!--CLARIFY--> 前后不要添加任何其他文字。
+        - role: user
+          text: |-
+            用户需求：{{#sys.query#}}
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: true
+            size: 10
+        context:
+          enabled: false
+          variable_selector: []
+        vision:
+          enabled: false
+        variables: []
+      height: 98
+      id: llm_brief
+      position:
+        x: 340
+        y: 300
+      positionAbsolute:
+        x: 340
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 判断调研简报是否可以直接进入检索与成稿
+        selected: false
+        title: ② 信息是否充分
+        type: if-else
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: contains
+            id: 8c1d4e27-6b93-4f5a-a2e8-73f0b9c4d156
+            value: '<!--READY-->'
+            varType: string
+            variable_selector:
+            - llm_brief
+            - text
+          id: 'true'
+          logical_operator: and
+      height: 126
+      id: if_ready
+      position:
+        x: 660
+        y: 300
+      positionAbsolute:
+        x: 660
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 检索市场规模、增长率与份额数据
+        selected: false
+        title: ③ 联网检索 · 市场规模
+        type: http-request
+        method: post
+        url: https://api.tavily.com/search
+        authorization:
+          type: no-auth
+        headers: ''
+        params: ''
+        body:
+          type: json
+          data:
+          - key: ''
+            type: text
+            value: |-
+              {
+                "api_key": "{{#env.TAVILY_API_KEY#}}",
+                "query": "{{#sys.query#}} 市场规模 增长率 市场份额 行业数据",
+                "search_depth": "advanced",
+                "topic": "general",
+                "max_results": 8,
+                "include_answer": true,
+                "include_raw_content": false
+              }
+        timeout:
+          connect: 10
+          read: 60
+          write: 30
+        retry_config:
+          enabled: true
+          max_retries: 2
+          retry_interval: 1000
+          exponential_backoff:
+            enabled: true
+            multiplier: 2
+            max_interval: 5000
+        ssl_verify: true
+        error_strategy: default-value
+        default_value_dict:
+          body: ''
+          status_code: 0
+      height: 98
+      id: http_market
+      position:
+        x: 980
+        y: 140
+      positionAbsolute:
+        x: 980
+        y: 140
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 检索主要玩家、竞争格局、行业趋势与政策
+        selected: false
+        title: ④ 联网检索 · 竞争与趋势
+        type: http-request
+        method: post
+        url: https://api.tavily.com/search
+        authorization:
+          type: no-auth
+        headers: ''
+        params: ''
+        body:
+          type: json
+          data:
+          - key: ''
+            type: text
+            value: |-
+              {
+                "api_key": "{{#env.TAVILY_API_KEY#}}",
+                "query": "{{#sys.query#}} 主要厂商 竞争格局 行业趋势 政策 用户需求",
+                "search_depth": "advanced",
+                "topic": "general",
+                "max_results": 8,
+                "include_answer": true,
+                "include_raw_content": false
+              }
+        timeout:
+          connect: 10
+          read: 60
+          write: 30
+        retry_config:
+          enabled: true
+          max_retries: 2
+          retry_interval: 1000
+          exponential_backoff:
+            enabled: true
+            multiplier: 2
+            max_interval: 5000
+        ssl_verify: true
+        error_strategy: default-value
+        default_value_dict:
+          body: ''
+          status_code: 0
+      height: 98
+      id: http_comp
+      position:
+        x: 980
+        y: 440
+      positionAbsolute:
+        x: 980
+        y: 440
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 把两路检索结果拼成一份材料，交给报告撰写节点
+        selected: false
+        title: ⑤ 合并检索材料
+        type: template-transform
+        template: |-
+          {% if market or comp %}
+          === 材料 A：市场规模与增长 ===
+          {{ market }}
+
+          === 材料 B：竞争格局与趋势 ===
+          {{ comp }}
+          {% else %}
+          （本次联网检索没有返回任何材料：请确认应用环境变量 TAVILY_API_KEY 已填写有效 Key，且容器可访问 api.tavily.com）
+          {% endif %}
+        variables:
+        - value_selector:
+          - http_market
+          - body
+          variable: market
+        - value_selector:
+          - http_comp
+          - body
+          variable: comp
+      height: 54
+      id: tmpl_merge
+      position:
+        x: 1300
+        y: 290
+      positionAbsolute:
+        x: 1300
+        y: 290
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 结合调研简报与检索材料，按七个章节撰写报告
+        selected: false
+        title: ⑥ 撰写调研报告
+        type: llm
+        model:
+          provider: ''
+          name: ''
+          mode: chat
+          completion_params:
+            temperature: 0.7
+            max_tokens: 8192
+        prompt_template:
+        - role: system
+          text: |-
+            你是顶级咨询公司的首席市场分析师，擅长把零散的公开资料整理成结构清晰、结论明确的商业调研报告。
+
+            ## 输入
+            1. 调研简报：已经和用户确认过的调研需求。
+            2. 检索材料：联网检索回来的原始资料（Tavily 搜索结果，包含标题、URL 和摘要）。
+
+            ## 输出要求
+            - 简体中文 Markdown，直接输出报告正文，不要开场白、不要收尾寒暄。
+            - 必须严格按下面七个章节输出，章节标题照抄，不要增删、不要合并：
+
+            ## 一、执行摘要
+            ## 二、市场规模与增长
+            ## 三、竞争格局
+            ## 四、目标用户与需求洞察
+            ## 五、驱动因素与趋势
+            ## 六、风险与不确定性
+            ## 七、结论与行动建议
+
+            ## 各章节写法
+            - 执行摘要：3~5 条要点，每条一句话结论。
+            - 市场规模与增长：规模、增速、驱动因素；有数据就列数据，并标注来源与年份。
+            - 竞争格局：主要玩家、份额与定位，玩家超过 3 个时用 Markdown 表格呈现。
+            - 目标用户与需求洞察：人群特征、核心痛点、购买与决策链路。
+            - 驱动因素与趋势：技术、政策、渠道、消费习惯。
+            - 风险与不确定性：数据缺口、关键假设、可能的反向因素。
+            - 结论与行动建议：3~5 条可执行建议，标注优先级。
+
+            ## 硬性约束
+            - 每个关键结论后面尽量用「（来源：机构或媒体，时间）」标注出处，来源必须真实出现在检索材料里。
+            - 检索材料没有覆盖的数据，明确写「材料未覆盖，待核实」，严禁凭空编造具体数字。
+            - 如果有效来源少于 3 条，在报告最开头单独加一行：「> ⚠️ 本次检索材料有限，以下结论置信度较低」。
+            - 全文控制在 1500~2500 字，多用短句和列表，避免空话套话。
+        - role: user
+          text: |-
+            【调研简报】
+            {{#llm_brief.text#}}
+
+            【检索材料】
+            {{#tmpl_merge.output#}}
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: true
+            size: 3
+        context:
+          enabled: false
+          variable_selector: []
+        vision:
+          enabled: false
+        variables: []
+      height: 98
+      id: llm_report
+      position:
+        x: 1620
+        y: 290
+      positionAbsolute:
+        x: 1620
+        y: 290
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#llm_report.text#}}'
+        desc: ''
+        selected: false
+        title: 输出报告
+        type: answer
+        variables: []
+      height: 105
+      id: answer_report
+      position:
+        x: 1940
+        y: 290
+      positionAbsolute:
+        x: 1940
+        y: 290
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#llm_brief.text#}}'
+        desc: 信息不足时向用户追问
+        selected: false
+        title: 追问澄清
+        type: answer
+        variables: []
+      height: 105
+      id: answer_clarify
+      position:
+        x: 1300
+        y: 620
+      positionAbsolute:
+        x: 1300
+        y: 620
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.7

@@ -1,0 +1,1756 @@
+app:
+  description: 递归检索 + 编号引用版：每轮按缺口重规划，来源带 [n] 可追溯
+  icon: 📊
+  icon_background: '#E0F2FE'
+  mode: advanced-chat
+  name: 市场调研报告助手 v3
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables:
+  - description: 已经追问过几次，防止无限追问
+    id: a1f0c3d7-2b48-4e91-9c6a-7d5e8f0b1a24
+    name: clarify_round
+    selector:
+    - conversation
+    - clarify_round
+    value: 0
+    value_type: number
+  environment_variables:
+  - description: Tavily 搜索 API Key
+    id: 3f7b2c41-9d5e-4a8c-b1f6-2e4d7a9c0b13
+    name: TAVILY_API_KEY
+    selector:
+    - env
+    - TAVILY_API_KEY
+    value: ''
+    value_type: secret
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: '👋 我是市场调研报告助手。
+
+
+      请用一句话告诉我你要调研什么，例如：
+
+      「帮我看看国内新能源汽车充电桩市场的竞争格局和机会点」
+
+
+      我的工作流程是：
+
+      1. 先和你确认「调研对象、目标市场、目标客群、调研目的」这几个关键信息；
+
+      2. 再联网检索公开资料（行业报告、财报、新闻、政策）；
+
+      3. 最后按「执行摘要 / 市场规模 / 竞争格局 / 用户洞察 / 趋势 / 风险 / 建议」七个章节输出报告。
+
+      '
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions:
+    - 帮我调研国内新能源汽车充电桩市场
+    - 分析一下中国扫地机器人市场的竞争格局
+    - 我想进入东南亚跨境电商，先做一份市场进入调研
+    - 评估一下 AI 编程工具在国内的付费意愿
+    suggested_questions_after_answer:
+      enabled: true
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: start-source->llm_brief-target
+      source: start
+      sourceHandle: source
+      target: llm_brief
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: start-source->code_scope-target
+      source: start
+      sourceHandle: source
+      target: code_scope
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: code_scope-source->llm_brief-target
+      source: code_scope
+      sourceHandle: source
+      target: llm_brief
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: llm_brief-source->code_brief-target
+      source: llm_brief
+      sourceHandle: source
+      target: code_brief
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: code_brief-source->if_ready-target
+      source: code_brief
+      sourceHandle: source
+      target: if_ready
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: assigner
+      id: if_ready-false->inc_clarify-target
+      source: if_ready
+      sourceHandle: 'false'
+      target: inc_clarify
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: assigner
+        targetType: answer
+      id: inc_clarify-source->answer_clarify-target
+      source: inc_clarify
+      sourceHandle: source
+      target: answer_clarify
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: assigner
+      id: if_ready-true->reset_clarify-target
+      source: if_ready
+      sourceHandle: 'true'
+      target: reset_clarify
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: assigner
+        targetType: code
+      id: reset_clarify-source->code_seed-target
+      source: reset_clarify
+      sourceHandle: source
+      target: code_seed
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: knowledge-retrieval
+      id: code_seed-source->kb_search-target
+      source: code_seed
+      sourceHandle: source
+      target: kb_search
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: code
+      id: kb_search-source->code_kb-target
+      source: kb_search
+      sourceHandle: source
+      target: code_kb
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: code_brief-source->code_kb-target
+      source: code_brief
+      sourceHandle: source
+      target: code_kb
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: loop
+      id: code_kb-source->loop_learn-target
+      source: code_kb
+      sourceHandle: source
+      target: loop_learn
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: loop
+        targetType: if-else
+      id: loop_learn-source->if_offtopic-target
+      source: loop_learn
+      sourceHandle: source
+      target: if_offtopic
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: if_offtopic-true->code_sources-target
+      source: if_offtopic
+      sourceHandle: 'true'
+      target: code_sources
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: answer
+      id: if_offtopic-false->answer_topic_missing-target
+      source: if_offtopic
+      sourceHandle: 'false'
+      target: answer_topic_missing
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: code_sources-source->llm_report-target
+      source: code_sources
+      sourceHandle: source
+      target: llm_report
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: llm_report-source->code_cited-target
+      source: llm_report
+      sourceHandle: source
+      target: code_cited
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: answer
+      id: code_cited-source->answer_report-target
+      source: code_cited
+      sourceHandle: source
+      target: answer_report
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: true
+        sourceType: loop-start
+        targetType: code
+        loop_id: loop_learn
+      id: loop_learnstart-source->code_pick-target
+      source: loop_learnstart
+      sourceHandle: source
+      target: code_pick
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: false
+        isInLoop: true
+        sourceType: code
+        targetType: http-request
+        loop_id: loop_learn
+      id: code_pick-source->search_a-target
+      source: code_pick
+      sourceHandle: source
+      target: search_a
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: false
+        isInLoop: true
+        sourceType: code
+        targetType: http-request
+        loop_id: loop_learn
+      id: code_pick-source->search_b-target
+      source: code_pick
+      sourceHandle: source
+      target: search_b
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: false
+        isInLoop: true
+        sourceType: http-request
+        targetType: code
+        loop_id: loop_learn
+      id: search_a-source->code_pack-target
+      source: search_a
+      sourceHandle: source
+      target: code_pack
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: false
+        isInLoop: true
+        sourceType: http-request
+        targetType: code
+        loop_id: loop_learn
+      id: search_b-source->code_pack-target
+      source: search_b
+      sourceHandle: source
+      target: code_pack
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: false
+        isInLoop: true
+        sourceType: code
+        targetType: llm
+        loop_id: loop_learn
+      id: code_pack-source->llm_analyze-target
+      source: code_pack
+      sourceHandle: source
+      target: llm_analyze
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: false
+        isInLoop: true
+        sourceType: llm
+        targetType: code
+        loop_id: loop_learn
+      id: llm_analyze-source->code_parse-target
+      source: llm_analyze
+      sourceHandle: source
+      target: code_parse
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: false
+        isInLoop: true
+        sourceType: code
+        targetType: assigner
+        loop_id: loop_learn
+      id: code_parse-source->assign_state-target
+      source: code_parse
+      sourceHandle: source
+      target: assign_state
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - type: select
+          label: 调研范围（地区）
+          variable: market_scope
+          required: false
+          options:
+          - 不限（全球为主）
+          - 中国大陆
+          - 中国 + 全球对照
+          - 北美
+          - 欧洲
+          - 东南亚
+          - 日韩
+          - 中东
+          default: 不限（全球为主）
+          hint: 决定检索式里的地区和报告地理口径
+          max_length: 128
+        - type: select
+          label: 行业类型
+          variable: industry
+          required: false
+          options:
+          - 不限
+          - 消费品/快消
+          - 科技/软件/SaaS
+          - 新能源/汽车
+          - 医疗健康
+          - 工业制造
+          - 金融/支付
+          - 教育
+          - 文娱/内容
+          - 跨境电商/零售
+          default: 不限
+          hint: 决定优先参考的公开数据源
+          max_length: 128
+        - type: select
+          label: 调研目的
+          variable: research_purpose
+          required: false
+          options:
+          - 竞品分析
+          - 市场进入
+          - 新品立项
+          - 投资尽调
+          - 定价策略
+          - 渠道策略
+          - 行业概览
+          default: 竞品分析
+          hint: 决定报告的结论落点与章节侧重
+          max_length: 128
+        - type: select
+          label: 时间范围
+          variable: time_range
+          required: false
+          options:
+          - 近一年
+          - 近三年
+          - 近五年
+          - 近十年
+          - 不限
+          default: 近三年
+          hint: 决定检索式里的年份词
+          max_length: 128
+        - type: select
+          label: 数据源偏好
+          variable: source_pref
+          required: false
+          options:
+          - 不限
+          - 优先券商研报/咨询报告
+          - 优先官方统计/政府数据
+          - 优先上市公司财报
+          - 优先新闻报道
+          - 优先电商/社媒数据
+          default: 不限
+          hint: 决定 Tavily 的域名偏好与可信度排序
+          max_length: 128
+        - type: select
+          label: 检索深度（轮数）
+          variable: depth
+          required: false
+          options:
+          - '2'
+          - '3'
+          - '4'
+          default: '3'
+          hint: 循环最大轮数；每轮 2 次搜索 ≈ 4 秒 + 10 credits
+          max_length: 128
+      height: 54
+      id: start
+      position:
+        x: 20
+        y: 240
+      positionAbsolute:
+        x: 20
+        y: 240
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 把开始节点的分类选项拼成检索口径与写作口径两段文本，缺省时走通用口径
+        selected: false
+        title: ①ᵇ 归一调研范围
+        type: code
+        variables:
+        - variable: market
+          value_selector:
+          - start
+          - market_scope
+        - variable: industry
+          value_selector:
+          - start
+          - industry
+        - variable: purpose
+          value_selector:
+          - start
+          - research_purpose
+        - variable: time_range
+          value_selector:
+          - start
+          - time_range
+        - variable: source_pref
+          value_selector:
+          - start
+          - source_pref
+        - variable: depth
+          value_selector:
+          - start
+          - depth
+        code_language: python3
+        code: "DEFAULTS = {\n    \"market\": \"不限（全球为主）\",\n    \"industry\": \"不限\",\n    \"purpose\": \"竞品分析\",\n    \"time_range\": \"近三年\",\n    \"source_pref\": \"不限\",\n    \"depth\": \"3\",\n}\n\n# 数据源偏好 -> 检索时优先压进检索式的关键词 + 报告里的口径提醒\nSOURCE_HINT = {\n    \"优先券商研报/咨询报告\": (\"券商研报 行业报告\", \"优先采用券商研报 / 咨询机构口径，自媒体数据只能作旁证\"),\n    \"优先官方统计/政府数据\": (\"统计局 海关 官方数据\", \"优先采用官方统计与政策文件，商业机构口径需标注差异\"),\n    \"优先上市公司财报\": (\"财报 年报 分部收入\", \"优先采用上市公司财报与分部披露，估算值必须标注\"),\n    \"优先新闻报道\": (\"新闻报道 最新动态\", \"优先采用主流媒体近一年报道，注意去重与转载\"),\n    \"优先电商/社媒数据\": (\"电商 销量 评论 社媒\", \"优先采用电商销量与社媒口碑数据，注意平台口径差异\"),\n}\n\n\ndef main(market: str, industry: str, purpose: str, time_range: str, source_pref: str, depth: str) -> dict:\n    market = (market or \"\").strip() or DEFAULTS[\"market\"]\n    industry = (industry or \"\").strip() or DEFAULTS[\"industry\"]\n    purpose = (purpose or \"\").strip() or DEFAULTS[\"purpose\"]\n    time_range = (time_range or \"\").strip() or DEFAULTS[\"time_range\"]\n    source_pref = (source_pref or \"\").strip() or DEFAULTS[\"source_pref\"]\n\n    try:\n        rounds = int(str(depth).strip())\n    except Exception:\n        rounds = 3\n    rounds = min(4, max(2, rounds))\n\n    # 「不限」等于不加约束，不要往检索式里塞噪音\n    geo = \"\" if market.startswith(\"不限\") else market\n    src_kw, src_rule = SOURCE_HINT.get(source_pref, (\"\", \"\"))\n\n    search_lines = [\"【检索口径】\"]\n    search_lines.append(\"- 地区：\" + (\"不限，全球视角为主\" if not geo else geo))\n    search_lines.append(\"- 行业类型：\" + industry)\n    search_lines.append(\"- 时间范围：\" + (\"不限\" if time_range == \"不限\" else time_range + \"内发布的数据优先\"))\n    search_lines.append(\"- 调研目的：\" + purpose + \"（检索要覆盖支撑该目的的指标）\")\n    if src_kw:\n        search_lines.append(\"- 数据源偏好：\" + source_pref + \"（检索式里可带「\" + src_kw + \"」这类词）\")\n\n    report_lines = [\"【报告口径】\"]\n    report_lines.append(\"- 地区范围：\" + (\"全球为主，中国作为重点对照\" if not geo else geo))\n    report_lines.append(\"- 行业类型：\" + industry)\n    report_lines.append(\"- 时间口径：\" + (\"不限年份，按数据可得性\" if time_range == \"不限\" else time_range + \"为宜，更早的数据只在做趋势对比时引用\"))\n    report_lines.append(\"- 报告用途：\" + purpose + \"——结论与行动建议必须落到该用途上\")\n    if src_rule:\n        report_lines.append(\"- 数据源：\" + src_rule)\n\n    return {\n        \"search_scope\": \"\\n\".join(search_lines),\n        \"report_scope\": \"\\n\".join(report_lines),\n        \"geo\": geo or \"全球\",\n        \"purpose\": purpose,\n        \"time_range\": time_range,\n        \"rounds\": rounds,\n        \"summary\": \"地区=\" + market + \"｜行业=\" + industry + \"｜目的=\" + purpose\n                   + \"｜时间=\" + time_range + \"｜来源=\" + source_pref + \"｜轮数=\" + str(rounds),\n    }\n"
+        outputs:
+          search_scope:
+            type: string
+            children: null
+          report_scope:
+            type: string
+            children: null
+          geo:
+            type: string
+            children: null
+          purpose:
+            type: string
+            children: null
+          time_range:
+            type: string
+            children: null
+          rounds:
+            type: number
+            children: null
+          summary:
+            type: string
+            children: null
+      height: 98
+      id: code_scope
+      position:
+        x: 190
+        y: 620
+      positionAbsolute:
+        x: 190
+        y: 620
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 把一句话需求转成可执行简报，并预置两条初始检索式
+        selected: false
+        title: ① 调研需求解析
+        type: llm
+        model:
+          provider: ''
+          name: ''
+          mode: chat
+          completion_params:
+            temperature: 0.3
+            max_tokens: 4096
+        prompt_template:
+        - role: system
+          text: '你是资深市场研究总监，负责把客户的一句话需求，转成一份可以直接执行的调研简报。
+
+
+            ## 第一步：判断信息是否充分
+
+            判定标准：必须同时明确「调研对象（行业 / 品类 / 公司 / 产品）」和「目标市场（国家或地区）」。
+
+            如果本会话历史消息里已经出现过这些信息，直接沿用，不要重复追问。
+
+            如果「已追问次数」已经 ≥ 2，即使信息仍然不完整，也不许再追问：直接按现有信息出简报，
+
+            把推测出来的部分写在「待确认」里，并在最后一行注明「（基于假设继续）」。
+
+
+            ## 第二步：按判断结果输出
+
+            - 信息充分 → 第一行只写 <!--READY-->，从第二行开始输出简报。
+
+            - 信息不充分且追问次数 < 2 → 第一行只写 <!--CLARIFY-->，第二行只写一句最关键的追问（一次只问一个问题，可给 2~3 个选项）。
+
+
+            ## 信息充分时的简报格式（严格照抄字段名）
+
+            调研主题：<一句话说清要研究什么>
+
+            所属行业：<行业 / 品类>
+
+            目标市场：<国家或地区>
+
+            目标客群：<人群画像>
+
+            调研目的：<这份报告支撑什么决策>
+
+            时间范围：<需要的数据时效>
+
+            核心问题：
+
+            1. <问题一>
+
+            2. <问题二>
+
+            3. <问题三>
+
+            4. <问题四>
+
+            建议数据来源：<公开报告 / 财报 / 行业新闻 / 电商评论 / 政策文件 等>
+
+            初始检索式1：<覆盖市场规模与增速的检索短句，带地区与年份>
+
+            初始检索式2：<覆盖竞争格局或价格渠道的检索短句，带地区与年份>
+
+            待确认：<用户没提到、但影响结论的关键假设；没有就写「无」>
+
+
+            ## 约束
+
+            - 全程简体中文，不编造事实。
+
+            - 两条初始检索式要互不重复、8~30 字、能直接丢进搜索引擎，不要引号不要编号。
+
+            - <!--READY--> / <!--CLARIFY--> 前后不要添加任何其他文字。
+
+            - 用户已经用下拉框界定了调研范围（见下方「检索口径」）：地区、时间、数据源按它来，不要自己改；这部分不用再追问。'
+        - role: user
+          text: '用户需求：{{#sys.query#}}
+
+
+            {{#code_scope.search_scope#}}
+
+
+            已追问次数：{{#conversation.clarify_round#}}'
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: true
+            size: 10
+        context:
+          enabled: false
+          variable_selector: []
+        vision:
+          enabled: false
+        variables: []
+      height: 98
+      id: llm_brief
+      position:
+        x: 340
+        y: 300
+      positionAbsolute:
+        x: 340
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 剥掉控制标记，得到干净的简报正文与「能否开工」标记
+        selected: false
+        title: ② 清洗简报
+        type: code
+        variables:
+        - variable: raw
+          value_selector:
+          - llm_brief
+          - text
+        code_language: python3
+        code: "def main(raw: str) -> dict:\n    text = (raw or \"\").replace(\"\\r\", \"\")\n    ready = \"yes\" if \"<!--READY-->\" in text else \"no\"\n    lines = [ln for ln in text.split(\"\\n\") if \"<!--\" not in ln]\n    clean = \"\\n\".join(lines).strip()\n    return {\"text\": clean[:4000], \"ready\": ready}\n"
+        outputs:
+          text:
+            type: string
+            children: null
+          ready:
+            type: string
+            children: null
+      height: 98
+      id: code_brief
+      position:
+        x: 540
+        y: 80
+      positionAbsolute:
+        x: 540
+        y: 80
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 判断调研简报是否可以直接进入检索与成稿
+        selected: false
+        title: ② 信息是否充分
+        type: if-else
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: 8c1d4e27-6b93-4f5a-a2e8-73f0b9c4d156
+            value: 'yes'
+            varType: string
+            variable_selector:
+            - code_brief
+            - ready
+          id: 'true'
+          logical_operator: and
+      height: 126
+      id: if_ready
+      position:
+        x: 760
+        y: 300
+      positionAbsolute:
+        x: 760
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        type: assigner
+        version: '2'
+        title: 追问计数 +1
+        desc: 记录已经追问过几次，避免无限追问
+        selected: false
+        items:
+        - variable_selector:
+          - conversation
+          - clarify_round
+          input_type: constant
+          operation: +=
+          value: 1
+      height: 98
+      id: inc_clarify
+      position:
+        x: 880
+        y: 520
+      positionAbsolute:
+        x: 880
+        y: 520
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#code_brief.text#}}'
+        desc: 信息不足时向用户追问
+        selected: false
+        title: 追问澄清
+        type: answer
+        variables: []
+      height: 105
+      id: answer_clarify
+      position:
+        x: 1120
+        y: 520
+      positionAbsolute:
+        x: 1120
+        y: 520
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        type: assigner
+        version: '2'
+        title: 追问计数清零
+        desc: 本次信息已经足够，把追问计数器复位
+        selected: false
+        items:
+        - variable_selector:
+          - conversation
+          - clarify_round
+          input_type: constant
+          operation: over-write
+          value: 0
+      height: 98
+      id: reset_clarify
+      position:
+        x: 880
+        y: 100
+      positionAbsolute:
+        x: 880
+        y: 100
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 从简报里取出两条初始检索式；缺失时按行业 + 市场兜底
+        selected: false
+        title: ② 生成初始检索式
+        type: code
+        variables:
+        - variable: brief
+          value_selector:
+          - code_brief
+          - text
+        - variable: fallback
+          value_selector:
+          - sys
+          - query
+        - variable: geo
+          value_selector:
+          - code_scope
+          - geo
+        - variable: time_range
+          value_selector:
+          - code_scope
+          - time_range
+        code_language: python3
+        code: "def main(brief: str, fallback: str, geo: str, time_range: str) -> dict:\n    text = (brief or \"\").replace(\"\\r\", \"\")\n    q1 = q2 = \"\"\n    industry = market = \"\"\n    for line in text.split(\"\\n\"):\n        s = line.strip()\n        for prefix, key in ((\"初始检索式1：\", \"q1\"), (\"初始检索式2：\", \"q2\")):\n            if s.startswith(prefix):\n                val = s.split(\"：\", 1)[1].strip()\n                if key == \"q1\":\n                    q1 = val\n                else:\n                    q2 = val\n        if s.startswith(\"所属行业：\"):\n            industry = s.split(\"：\", 1)[1].strip()\n        elif s.startswith(\"目标市场：\"):\n            market = s.split(\"：\", 1)[1].strip()\n\n    # 用户在开始节点选了地区，就以用户的选择为准；没选（全球/不限）才用简报里的\n    geo = (geo or \"\").strip()\n    if geo and geo != \"全球\":\n        market = geo\n\n    prefix = \" \".join(x for x in (market, industry) if x).strip()\n    if not prefix:\n        prefix = (fallback or \"市场\").strip()[:30]\n\n    if len(q1) < 4:\n        q1 = prefix + \" 市场规模 增长率\"\n    if len(q2) < 4 or q2 == q1:\n        q2 = prefix + \" 竞争格局 市场份额 主要厂商\"\n\n    return {\"q1\": q1[:80], \"q2\": q2[:80]}\n"
+        outputs:
+          q1:
+            type: string
+            children: null
+          q2:
+            type: string
+            children: null
+      height: 98
+      id: code_seed
+      position:
+        x: 1120
+        y: 100
+      positionAbsolute:
+        x: 1120
+        y: 100
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - id: kb_search
+      type: knowledge-retrieval
+      position:
+        x: 1120
+        y: 400
+      positionAbsolute:
+        x: 1120
+        y: 400
+      width: 244
+      height: 96
+      selected: false
+      data:
+        type: knowledge-retrieval
+        title: 检索历史报告库
+        desc: 从内部知识库召回历史报告片段（没有配知识库时返回空，不影响主流程）
+        selected: false
+        dataset_ids:
+        - b382960b-4c68-45ae-871e-e4e4dbbda393
+        query_variable_selector:
+        - code_seed
+        - q1
+        retrieval_mode: multiple
+        multiple_retrieval_config:
+          top_k: 4
+          score_threshold: null
+          reranking_mode: reranking_model
+          reranking_enable: false
+          reranking_model: null
+          weights: null
+    - data:
+        desc: 把知识库召回结果整理成 [K1] 编号片段 + 登记表行；与主题无关的片段直接丢掉
+        selected: false
+        title: 整理历史报告片段
+        type: code
+        variables:
+        - variable: chunks
+          value_selector:
+          - kb_search
+          - result
+        - variable: topic
+          value_selector:
+          - code_brief
+          - text
+        - variable: query
+          value_selector:
+          - sys
+          - query
+        code_language: python3
+        code: "import re\n\n\ndef _terms(text):\n    \"\"\"抽相关性判断词：中文取 3~6 字连续片段（够长才有区分度），英文/数字词整体保留。\"\"\"\n    blob = re.sub(r\"[^\\u4e00-\\u9fffA-Za-z0-9]+\", \" \", text or \"\")\n    out = set()\n    for w in blob.split():\n        if not w:\n            continue\n        if re.fullmatch(r\"[A-Za-z0-9\\-]{3,}\", w):\n            out.add(w.lower())\n            continue\n        # 3 字滑窗：既有区分度，又不会因为断句位置不同而漏掉\n        for size in (3, 4):\n            if len(w) >= size:\n                for i in range(len(w) - size + 1):\n                    out.add(w[i:i + size])\n    return out\n\n\nSTOP = {\n    \"市场规模\", \"市场规\", \"场规模\", \"竞争格局\", \"竞争格\", \"争格局\", \"增长趋势\", \"增长趋\", \"长趋势\",\n    \"调研\", \"研究\", \"报告\", \"分析\", \"情况\", \"趋势\", \"格局\", \"规模\", \"市场\", \"行业\", \"数据\",\n    \"全球\", \"国内\", \"中国\", \"我们\", \"用于\", \"需要\", \"帮我\", \"一下\", \"哪些\", \"怎么\",\n}\n\n\ndef _terms_filtered(text):\n    return {t for t in _terms(text) if t not in STOP}\n\n\ndef main(chunks, topic: str, query: str) -> dict:\n    items = chunks\n    if isinstance(items, str):\n        try:\n            import json\n            items = json.loads(items)\n        except Exception:\n            items = []\n    if not isinstance(items, list):\n        items = []\n\n    # 主题只取「调研主题 / 所属行业」两行 + 用户原话；核心问题里的通用词不算\n    topic_head = \"\"\n    for line in (topic or \"\").split(\"\\n\"):\n        s = line.strip()\n        for prefix in (\"调研主题：\", \"所属行业：\", \"目标市场：\"):\n            if s.startswith(prefix):\n                topic_head += \" \" + s.split(\"：\", 1)[1]\n    terms = _terms_filtered(topic_head + \" \" + (query or \"\"))\n    gate = len(terms) >= 3\n\n    out, reg, seen = [], [], set()\n    seen_title = {}\n    n = 0\n    dropped = 0\n    for c in items:\n        if not isinstance(c, dict):\n            continue\n        content = (c.get(\"content\") or \"\").strip()\n        title = (c.get(\"title\") or \"历史报告\").strip().replace(\"|\", \"｜\")\n        if not content:\n            continue\n        key = title + \"|\" + content[:40]\n        if key in seen:\n            continue\n        seen.add(key)\n\n        # 相关性门控：标题或正文里至少命中一个主题词，否则视为无关历史报告，直接丢掉\n        if gate:\n            hay = (title + \"\\n\" + content).lower()\n            if not any(t in hay for t in terms):\n                dropped += 1\n                continue\n\n        n += 1\n        tag = \"K\" + str(n)\n        seen_title[title] = seen_title.get(title, 0) + 1\n        label = title if seen_title[title] == 1 else title + \"（片段\" + str(seen_title[title]) + \"）\"\n        out.append(\"[\" + tag + \"] 《\" + label + \"》\\n\" + content[:900])\n        reg.append(tag + \" | \" + label[:60] + \" | 内部知识库 | \")\n\n    return {\n        \"kb_text\": \"\\n\\n\".join(out)[:5000],\n        \"kb_registry\": \"\\n\".join(reg),\n        \"kb_count\": n,\n        \"kb_dropped\": dropped,\n    }\n"
+        outputs:
+          kb_text:
+            type: string
+            children: null
+          kb_registry:
+            type: string
+            children: null
+          kb_count:
+            type: number
+            children: null
+          kb_dropped:
+            type: number
+            children: null
+      height: 98
+      id: code_kb
+      position:
+        x: 1120
+        y: 560
+      positionAbsolute:
+        x: 1120
+        y: 560
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        type: loop
+        title: ③ 递归检索（轮数由「检索深度」决定，2~4 轮）
+        desc: 每轮依据已获知识重新规划检索式；本轮没捞到新来源、或材料整体跑偏就提前停
+        selected: false
+        height: 520
+        width: 940
+        loop_count: 4
+        logical_operator: or
+        break_conditions:
+        - id: 75758763-72da-42a9-98eb-6c7c0c688fe8
+          variable_selector:
+          - code_parse
+          - done
+          comparison_operator: is
+          value: 'yes'
+          varType: string
+        - id: bba6b854-591c-40be-b675-18e198483c2a
+          variable_selector:
+          - code_parse
+          - offtopic
+          comparison_operator: is
+          value: 'yes'
+          varType: string
+        loop_variables:
+        - id: fdb0f7c4-781e-490d-a66a-d965a0011da4
+          label: knowledge
+          var_type: string
+          value_type: constant
+          value: ''
+        - id: ff8b80ee-bd6c-4985-add6-0741cb57b26e
+          label: registry
+          var_type: string
+          value_type: constant
+          value: ''
+        - id: 30f0d0c9-f920-44bb-ba58-ba3b1fc57eb6
+          label: q1
+          var_type: string
+          value_type: constant
+          value: ''
+        - id: 559160c8-2214-432c-b920-54fac1658e26
+          label: q2
+          var_type: string
+          value_type: constant
+          value: ''
+        start_node_id: loop_learnstart
+        outputs: {}
+      height: 520
+      id: loop_learn
+      position:
+        x: 1360
+        y: 40
+      positionAbsolute:
+        x: 1360
+        y: 40
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 940
+      zIndex: 1
+    - data:
+        desc: ''
+        isInLoop: true
+        selected: false
+        title: ''
+        type: loop-start
+      draggable: false
+      height: 48
+      id: loop_learnstart
+      parentId: loop_learn
+      position:
+        x: 40
+        y: 90
+      positionAbsolute:
+        x: 1400
+        y: 130
+      selectable: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-loop-start
+      width: 44
+      zIndex: 1002
+    - data:
+        desc: 第 1 轮用初始检索式，之后用上一轮规划出的检索式
+        selected: false
+        title: ④ 取本轮检索式
+        type: code
+        variables:
+        - variable: cur_q1
+          value_selector:
+          - loop_learn
+          - q1
+        - variable: cur_q2
+          value_selector:
+          - loop_learn
+          - q2
+        - variable: seed_q1
+          value_selector:
+          - code_seed
+          - q1
+        - variable: seed_q2
+          value_selector:
+          - code_seed
+          - q2
+        - variable: knowledge
+          value_selector:
+          - loop_learn
+          - knowledge
+        - variable: max_rounds
+          value_selector:
+          - code_scope
+          - rounds
+        code_language: python3
+        code: "def main(cur_q1: str, cur_q2: str, seed_q1: str, seed_q2: str, knowledge: str, max_rounds: int) -> dict:\n    q1 = (cur_q1 or \"\").strip() or (seed_q1 or \"\").strip()\n    q2 = (cur_q2 or \"\").strip() or (seed_q2 or \"\").strip()\n    if q2 == q1:\n        q2 = (seed_q2 or q2).strip()\n    round_no = 1 + (knowledge or \"\").count(\"=== 第\")\n    try:\n        max_rounds = int(max_rounds)\n    except Exception:\n        max_rounds = 3\n    # 「检索深度」选项决定还要不要继续：到轮数上限就不再规划新检索式\n    left = max(0, max_rounds - round_no + 1)\n    return {\n        \"q1\": q1[:80],\n        \"q2\": q2[:80],\n        \"round\": round_no,\n        \"max_rounds\": max_rounds,\n        \"rounds_left\": left,\n        \"is_last\": \"yes\" if left <= 1 else \"no\",\n    }\n"
+        outputs:
+          q1:
+            type: string
+            children: null
+          q2:
+            type: string
+            children: null
+          round:
+            type: number
+            children: null
+          max_rounds:
+            type: number
+            children: null
+          rounds_left:
+            type: number
+            children: null
+          is_last:
+            type: string
+            children: null
+        loop_id: loop_learn
+        isInLoop: true
+        isInIteration: false
+      height: 98
+      id: code_pick
+      position:
+        x: 120
+        y: 155
+      positionAbsolute:
+        x: 120
+        y: 155
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      parentId: loop_learn
+      zIndex: 1002
+    - data:
+        desc: 本轮第 1 条检索式（初始检索式，或上一轮按缺口规划）
+        selected: false
+        title: ⑤ 检索 A
+        type: http-request
+        method: post
+        url: https://api.tavily.com/search
+        authorization:
+          type: no-auth
+        headers: ''
+        params: ''
+        body:
+          type: json
+          data:
+          - key: ''
+            type: text
+            value: "{\n  \"api_key\": \"{{#env.TAVILY_API_KEY#}}\",\n  \"query\": \"{{#code_pick.q1#}} 行业数据 报告\",\n  \"search_depth\": \"advanced\",\n  \"topic\": \"general\",\n  \"max_results\": 6,\n  \"include_answer\": true,\n  \"include_raw_content\": false\n}"
+        timeout:
+          connect: 10
+          read: 60
+          write: 30
+        retry_config:
+          enabled: true
+          max_retries: 2
+          retry_interval: 1000
+          exponential_backoff:
+            enabled: true
+            multiplier: 2
+            max_interval: 5000
+        ssl_verify: true
+        error_strategy: default-value
+        default_value_dict:
+          body: ''
+          status_code: 0
+        loop_id: loop_learn
+        isInLoop: true
+        isInIteration: false
+      height: 98
+      id: search_a
+      position:
+        x: 250
+        y: 60
+      positionAbsolute:
+        x: 250
+        y: 60
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      parentId: loop_learn
+      zIndex: 1002
+    - data:
+        desc: 本轮第 2 条检索式
+        selected: false
+        title: ⑥ 检索 B
+        type: http-request
+        method: post
+        url: https://api.tavily.com/search
+        authorization:
+          type: no-auth
+        headers: ''
+        params: ''
+        body:
+          type: json
+          data:
+          - key: ''
+            type: text
+            value: "{\n  \"api_key\": \"{{#env.TAVILY_API_KEY#}}\",\n  \"query\": \"{{#code_pick.q2#}} 行业数据 报告\",\n  \"search_depth\": \"advanced\",\n  \"topic\": \"general\",\n  \"max_results\": 6,\n  \"include_answer\": true,\n  \"include_raw_content\": false\n}"
+        timeout:
+          connect: 10
+          read: 60
+          write: 30
+        retry_config:
+          enabled: true
+          max_retries: 2
+          retry_interval: 1000
+          exponential_backoff:
+            enabled: true
+            multiplier: 2
+            max_interval: 5000
+        ssl_verify: true
+        error_strategy: default-value
+        default_value_dict:
+          body: ''
+          status_code: 0
+        loop_id: loop_learn
+        isInLoop: true
+        isInIteration: false
+      height: 98
+      id: search_b
+      position:
+        x: 250
+        y: 250
+      positionAbsolute:
+        x: 250
+        y: 250
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      parentId: loop_learn
+      zIndex: 1002
+    - data:
+        desc: 裁剪原始结果、按 URL 去重、给新来源分配全局编号 [n]
+        selected: false
+        title: ⑦ 去重 + 编号
+        type: code
+        variables:
+        - variable: raw_a
+          value_selector:
+          - search_a
+          - body
+        - variable: raw_b
+          value_selector:
+          - search_b
+          - body
+        - variable: registry
+          value_selector:
+          - loop_learn
+          - registry
+        - variable: kb
+          value_selector:
+          - code_kb
+          - kb_text
+        - variable: kb_registry
+          value_selector:
+          - code_kb
+          - kb_registry
+        - variable: round_no
+          value_selector:
+          - code_pick
+          - round
+        code_language: python3
+        code: "import json\nimport re\n\n\ndef _clean(text, limit):\n    text = re.sub(r\"\\s+\", \" \", (text or \"\")).strip()\n    # 登记表用 | 分隔，标题里的半角竖线必须替换掉，否则整行会错位\n    return text.replace(\"|\", \"｜\")[:limit]\n\n\ndef main(raw_a: str, raw_b: str, registry: str, kb: str, kb_registry: str, round_no: int) -> dict:\n    lines = [ln for ln in (registry or \"\").split(\"\\n\") if ln.strip()]\n\n    # 已知编号：url -> n；只有纯数字编号参与，K* 是知识库片段不参与网页编号\n    known = {}\n    maxn = 0\n    for ln in lines:\n        parts = [p.strip() for p in ln.split(\"|\")]\n        if len(parts) >= 3 and parts[0].isdigit():\n            known[parts[2]] = parts[0]\n            maxn = max(maxn, int(parts[0]))\n\n    out = []\n    added = 0\n\n    # 知识库片段只在第 1 轮注入，编号 K1..Kn，与网页来源 [n] 分开\n    if str(round_no) == \"1\" and (kb or \"\").strip():\n        out.append(\"===== 内部知识库（历史报告） =====\")\n        out.append(kb.strip())\n        for ln in (kb_registry or \"\").split(\"\\n\"):\n            if ln.strip():\n                lines.append(ln.strip())\n                added += 1\n\n    for tag, raw in ((\"A\", raw_a), (\"B\", raw_b)):\n        try:\n            data = json.loads(raw or \"{}\")\n        except Exception:\n            data = {}\n        if not isinstance(data, dict):\n            data = {}\n\n        answer = _clean(data.get(\"answer\"), 700)\n        if answer:\n            # 引擎摘要也要有个正式编号，否则模型会自己编「[搜索B]」这种\n            # 没法在来源表里对应上的标注（本次踩过）。\n            key = \"answer://\" + tag\n            if key in known:\n                snum = known[key]\n            else:\n                maxn += 1\n                snum = str(maxn)\n                known[key] = snum\n                added += 1\n                lines.append(snum + \" | Tavily 引擎摘要（检索式\" + tag + \"） | Tavily answer 字段 | \")\n            out.append(\"[\" + snum + \"] Tavily 引擎摘要（检索式\" + tag + \"）\\n\" + answer)\n\n        results = data.get(\"results\") or []\n        if not isinstance(results, list):\n            results = []\n        for item in results[:6]:\n            if not isinstance(item, dict):\n                continue\n            url = (item.get(\"url\") or \"\").strip()\n            if not url:\n                continue\n            title = _clean(item.get(\"title\"), 100)\n            date = _clean(item.get(\"published_date\"), 10)\n            body = _clean(item.get(\"content\"), 900)\n\n            if url in known:\n                num = known[url]\n            else:\n                maxn += 1\n                num = str(maxn)\n                known[url] = num\n                added += 1\n                lines.append(num + \" | \" + (title or \"未命名来源\") + \" | \" + url + \" | \" + date)\n\n            out.append(\"[\" + num + \"] \" + title + \" (\" + date + \")\\n\" + body)\n\n    numbered = \"\\n\\n\".join(out) if out else \"（本轮检索没有返回任何结果）\"\n    return {\n        \"numbered\": numbered,\n        \"registry\": \"\\n\".join(lines),\n        \"new_count\": added,\n        \"total_count\": len(lines),\n    }\n"
+        outputs:
+          numbered:
+            type: string
+            children: null
+          registry:
+            type: string
+            children: null
+          new_count:
+            type: number
+            children: null
+          total_count:
+            type: number
+            children: null
+        loop_id: loop_learn
+        isInLoop: true
+        isInIteration: false
+      height: 98
+      id: code_pack
+      position:
+        x: 390
+        y: 150
+      positionAbsolute:
+        x: 390
+        y: 150
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      parentId: loop_learn
+      zIndex: 1002
+    - data:
+        desc: 把本轮材料压成带 [n] 引用的要点，并判断是继续还是收口
+        selected: false
+        title: ⑧ 提炼要点 + 规划下一轮
+        type: llm
+        model:
+          provider: ''
+          name: ''
+          mode: chat
+          completion_params:
+            temperature: 0.3
+            max_tokens: 16384
+        prompt_template:
+        - role: system
+          text: '你是资深市场研究分析师，在一轮轮迭代的调研中负责「提炼」与「决策」。
+
+
+            ## 输入
+
+            - 调研简报（含核心问题清单）
+
+            - 已获知识（前几轮的要点，可能为空）
+
+            - 本轮带编号的材料：每段以 [n] 开头，n 是这条来源的全局编号；以 [K1] 开头的是内部知识库（历史报告）片段，同样可作依据，引用时写 [K1]
+
+
+            ## 任务一：本轮新增要点
+
+            - 只写「已获知识」里没有的新信息，早就有的一句话都不要重复
+
+            - 6~12 条，每条 ≤ 60 字，必须带具体数字 / 年份 / 公司名
+
+            - 每条结尾用 [n] 标注来自哪条材料，例如：（来源 [3]）
+
+            - 材料之间互相矛盾，单独用一条把矛盾写出来，并标注各自来源编号
+
+            - 材料与主题无关时，第一句必须指出「本轮材料与主题无关」
+
+
+            ## 任务二：覆盖度判断
+
+            对照简报的「核心问题」逐条看：已获知识 + 本轮要点能不能回答。
+
+            - 还缺关键信息 → 写 2 条下一轮检索式，指向缺口，且不要和之前搜过的重复
+
+            - 已经够写一份可信报告 → 只输出一行 DONE，不要写检索式
+
+            - 如果「剩余轮数」已经为 0，无论够不够，都只输出 DONE（轮数预算用完了）
+
+
+            ## 输出格式（严格遵守，不要其他段落）
+
+            【本轮新增要点】
+
+            - 要点（来源 [1]）
+
+            - 要点（来源 [2][5]）
+
+            【覆盖度】
+
+            缺：<还缺什么，一句话>　或　够：可以成稿
+
+            【下一轮检索式】
+
+            QUERY1: <检索短句>
+
+            QUERY2: <检索短句>
+
+            （若已足够，本节整段替换为 DONE）
+
+
+            ## 约束
+
+            - 简体中文，直接给结果，不要输出思考过程
+
+            - 只依据给定材料，不要补充自己的行业知识
+
+            - 编号必须是材料里真实出现过的 [n]，不要编造'
+        - role: user
+          text: '本轮轮次：第 {{#code_pick.round#}} / {{#code_pick.max_rounds#}} 轮（剩余轮数 {{#code_pick.rounds_left#}}）
+
+            本轮检索式：{{#code_pick.q1#}} ／ {{#code_pick.q2#}}
+
+
+            {{#code_scope.search_scope#}}
+
+
+            调研简报：
+
+            {{#code_brief.text#}}
+
+
+            === 已获知识（前几轮累积，可能为空） ===
+
+            {{#loop_learn.knowledge#}}
+
+
+            === 本轮材料（编号为全局来源编号） ===
+
+            {{#code_pack.numbered#}}'
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: true
+            size: 10
+        context:
+          enabled: false
+          variable_selector: []
+        vision:
+          enabled: false
+        variables: []
+      height: 98
+      id: llm_analyze
+      position:
+        x: 530
+        y: 150
+      positionAbsolute:
+        x: 530
+        y: 150
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 切出要点并入知识库、取出下一轮检索式、判断是否提前收口
+        selected: false
+        title: ⑨ 拆解本轮结果
+        type: code
+        variables:
+        - variable: analyze
+          value_selector:
+          - llm_analyze
+          - text
+        - variable: knowledge
+          value_selector:
+          - loop_learn
+          - knowledge
+        - variable: registry
+          value_selector:
+          - code_pack
+          - registry
+        - variable: new_count
+          value_selector:
+          - code_pack
+          - new_count
+        - variable: fallback
+          value_selector:
+          - sys
+          - query
+        code_language: python3
+        code: "def main(analyze: str, knowledge: str, registry: str, new_count, fallback: str) -> dict:\n    text = (analyze or \"\").replace(\"\\r\", \"\")\n    lines = text.split(\"\\n\")\n\n    queries = []\n    keep = []\n    upper_all = text.upper()\n    for line in lines:\n        s = line.strip()\n        up = s.upper()\n        is_query_line = up.startswith(\"QUERY\") or up.startswith(\"检索式\")\n        if is_query_line:\n            val = s\n            for sep in (\"：\", \":\"):\n                if sep in s:\n                    val = s.split(sep, 1)[1].strip()\n                    break\n            val = val.strip(\" -•*[]()\\\"'\")\n            if len(val) >= 4 and val.upper() not in (\"QUERY1\", \"QUERY2\"):\n                queries.append(val)\n            continue\n        # 下一轮检索式这一节整体不进知识库\n        if s.startswith(\"【下一轮检索式】\"):\n            continue\n        keep.append(line)\n\n    body = \"\\n\".join(keep).strip()\n    body = body.replace(\"DONE\", \"\").strip() if \"DONE\" in upper_all and \"【\" not in body else body\n\n    prev = (knowledge or \"\").strip()\n    rounds = prev.count(\"=== 第\") + 1\n    chunk = \"=== 第 \" + str(rounds) + \" 轮 ===\\n\" + (body or \"（本轮无有效要点）\")\n    merged = (prev + \"\\n\\n\" + chunk).strip() if prev else chunk\n\n    # 停止条件：模型明确说够了，或者这轮一条新来源都没捞到（再去也是重复）\n    done = \"no\"\n    if \"DONE\" in upper_all:\n        done = \"yes\"\n    elif not queries:\n        done = \"yes\"\n    try:\n        if int(new_count or 0) == 0:\n            done = \"yes\"\n    except Exception:\n        pass\n\n    # 独立信号：写不出可信报告。注意两个前提，否则会把正常提问误判成跑偏：\n    #   · 只在「已经跑过至少一轮检索」后才判（首轮还没搜就先追问，不能算跑偏）\n    #   · 整个登记表一条来源都没有 → 确实没材料可写\n    #   · 模型自己明说材料无关/无法支撑（兜底）\n    total_rows = len([ln for ln in (registry or \"\").split(\"\\n\") if ln.strip()])\n    offtopic = \"no\"\n    if rounds >= 1 and total_rows == 0:\n        offtopic = \"yes\"\n    OFFTopic_MARKS = (\n        \"本轮材料与主题无关\", \"主题不明\", \"跑题\", \"无关内容\",\n        \"素材不含任何具体\", \"不含任何具体\", \"无具体行业\",\n        \"无法支撑\", \"无法形成结论\", \"没有可提炼\", \"缺乏具体\",\n        \"不具备交付条件\", \"缺少调研对象\",\n    )\n    if any(k in text for k in OFFTopic_MARKS):\n        offtopic = \"yes\"\n\n    uniq = []\n    for q in queries:\n        if q not in uniq:\n            uniq.append(q)\n    prefix = (fallback or \"该市场\").strip()[:30]\n    while len(uniq) < 2:\n        uniq.append(prefix + (\" 最新数据 增速\" if len(uniq) == 0 else \" 份额 排名 价格\"))\n\n    return {\n        \"knowledge\": merged,\n        \"registry\": registry or \"\",\n        \"q1\": uniq[0][:80],\n        \"q2\": uniq[1][:80],\n        \"done\": done,\n        \"offtopic\": offtopic,\n    }\n"
+        outputs:
+          knowledge:
+            type: string
+            children: null
+          registry:
+            type: string
+            children: null
+          q1:
+            type: string
+            children: null
+          q2:
+            type: string
+            children: null
+          done:
+            type: string
+            children: null
+          offtopic:
+            type: string
+            children: null
+        loop_id: loop_learn
+        isInLoop: true
+        isInIteration: false
+      height: 98
+      id: code_parse
+      position:
+        x: 670
+        y: 150
+      positionAbsolute:
+        x: 670
+        y: 150
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      parentId: loop_learn
+      zIndex: 1002
+    - data:
+        type: assigner
+        version: '2'
+        title: ⑩ 写回循环状态
+        desc: 把知识库、来源登记表与下一轮检索式写回 loop 变量
+        selected: false
+        items:
+        - variable_selector:
+          - loop_learn
+          - knowledge
+          input_type: variable
+          operation: over-write
+          value:
+          - code_parse
+          - knowledge
+        - variable_selector:
+          - loop_learn
+          - registry
+          input_type: variable
+          operation: over-write
+          value:
+          - code_parse
+          - registry
+        - variable_selector:
+          - loop_learn
+          - q1
+          input_type: variable
+          operation: over-write
+          value:
+          - code_parse
+          - q1
+        - variable_selector:
+          - loop_learn
+          - q2
+          input_type: variable
+          operation: over-write
+          value:
+          - code_parse
+          - q2
+        loop_id: loop_learn
+        isInLoop: true
+        isInIteration: false
+      height: 98
+      id: assign_state
+      position:
+        x: 810
+        y: 150
+      positionAbsolute:
+        x: 810
+        y: 150
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+      parentId: loop_learn
+      zIndex: 1002
+    - data:
+        desc: 把全部轮次的要点与编号来源整理成写作素材
+        selected: false
+        title: ⑪ 汇总材料与来源表
+        type: code
+        variables:
+        - variable: knowledge
+          value_selector:
+          - loop_learn
+          - knowledge
+        - variable: registry
+          value_selector:
+          - loop_learn
+          - registry
+        code_language: python3
+        code: "import re\n\n\ndef main(knowledge: str, registry: str) -> dict:\n    materials = (knowledge or \"\").strip()\n    if not materials:\n        materials = \"（本次联网检索没有返回任何材料：请确认环境变量 TAVILY_API_KEY 有效，且容器可访问 api.tavily.com）\"\n\n    rows = [ln for ln in (registry or \"\").split(\"\\n\") if ln.strip()]\n    lines = []\n    kb_lines = []\n    all_nums = []\n    all_k = []\n    for ln in rows:\n        parts = [p.strip() for p in ln.split(\"|\")]\n        num = parts[0] if parts else \"\"\n        title = parts[1] if len(parts) > 1 else \"\"\n        url = parts[2] if len(parts) > 2 else \"\"\n        date = parts[3] if len(parts) > 3 else \"\"\n        if not num:\n            continue\n        when = \"（\" + date + \"）\" if date else \"\"\n        tail = \" — \" + url if url else \"\"\n        entry = num + \". \" + (title or \"未命名来源\") + when + tail\n        if num.startswith(\"K\"):\n            kb_lines.append(entry)\n            all_k.append(num)\n        else:\n            lines.append(entry)\n            all_nums.append(num)\n\n    source_list = \"\\n\".join(kb_lines + lines) if (kb_lines or lines) else \"（本次没有取得可用来源）\"\n\n    # 告诉写作节点：哪些编号还没被用过，逼它覆盖，避免「列了 31 条只用 21 条」\n    cited = set(re.findall(r\"\\[([0-9]+|K[0-9]+)\\]\", materials))\n    unused_web = [n for n in all_nums if n not in cited]\n    unused_kb = [k for k in all_k if k not in cited]\n    unused = \"、\".join(\"[\" + x + \"]\" for x in (unused_kb + unused_web))\n    if not unused:\n        unused = \"无（所有来源都已被引用）\"\n\n    return {\n        \"materials\": materials,\n        \"source_list\": source_list,\n        \"n_sources\": len(lines) + len(kb_lines),\n        \"n_kb\": len(kb_lines),\n        \"unused\": unused,\n    }\n"
+        outputs:
+          materials:
+            type: string
+            children: null
+          source_list:
+            type: string
+            children: null
+          n_sources:
+            type: number
+            children: null
+          n_kb:
+            type: number
+            children: null
+          unused:
+            type: string
+            children: null
+      height: 98
+      id: code_sources
+      position:
+        x: 2160
+        y: 120
+      positionAbsolute:
+        x: 2160
+        y: 120
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 按固定七章结构输出报告，数字必须带 [n] 引用
+        selected: false
+        title: ⑫ 撰写调研报告
+        type: llm
+        model:
+          provider: ''
+          name: ''
+          mode: chat
+          completion_params:
+            temperature: 0.7
+            max_tokens: 16384
+        prompt_template:
+        - role: system
+          text: "你是顶级咨询公司的市场研究总监，要交付一份可直接给决策层看的市场调研报告。\n\n## 七章结构（标题固定、顺序固定）\n## 一、执行摘要\n## 二、市场规模与增长\n## 三、竞争格局\n## 四、目标用户与需求洞察\n## 五、驱动因素与趋势\n## 六、风险与不确定性\n## 七、结论与行动建议\n\n## 引用规则（最重要）\n1. 每一个数字后面必须紧跟来源编号，格式 [3]；多个来源写 [3][5]；内部知识库片段用 [K1] 这种写法。\n2. 只能使用素材里出现过的编号，禁止编造编号；也**禁止自造 `[搜索A]`/`[搜索B]`/`[来源X]`\n   这类文字标注**——所有引用一律写成 `[数字]` 或 `[K数字]` 的形式。\n3. 素材里没有的数字，写「材料未覆盖，待核实」，不许自己估算。\n4. 不要写「参考来源」章节，系统会自动追加完整来源表。\n5. 素材之间互相矛盾时，不要自己挑一个：在正文里并列，说明哪个更可信、为什么。\n6. 素材里出现明显单位错误或数量级矛盾时，点名提醒「勿直接引用」。\n7. 素材里的内部知识库片段编号是 [K1]、[K2] 这种形式：用到它们的内容就照原样标 [K1]，\n   不要改写成 [n]，也不要因为它是内部资料就不标。\n8. 来源利用率：末尾给的「尚未被引用的来源」清单里，凡是对结论有用的都要用上（正文引用即可）；\n   某条确实和主题无关、或只是重复口径，可以不引——但**内部知识库片段 [K*] 只要有就必须至少引用一次**，\n   并在正文里说明它和外部数据是否一致；一条都不用会让人以为内部资料没被采纳。\n\n## 其他要求\n- 表格优先于长段落：市场规模、竞争格局、玩家对比尽量用表格\n- 执行摘要写 5~6 条带结论的判断，不要复述目录\n- 第七章按 P0 / P1 / P2 排优先级，每条写清依据\n- 简体中文，咨询报告口吻，结论先行，全文 3000~5000 字\n- 全文最后一行必须单独输出：`引用清单：1, 3, 12, K1, K2`\n  把你正文里真正用到的编号全列在这一行（只列编号、逗号分隔、不带方括号），\n  系统据此生成「参考来源」表；这一行会被自动删除，不会出现在报告里"
+        - role: user
+          text: '{{#code_scope.report_scope#}}
+
+
+            调研简报：
+
+            {{#code_brief.text#}}
+
+
+            原始需求：{{#sys.query#}}
+
+
+            === 素材（要点按轮次累积，方括号内为全局来源编号） ===
+
+            {{#code_sources.materials#}}
+
+
+            === 来源编号对照表（仅供你确认编号含义，不要在正文里复述 URL） ===
+
+            {{#code_sources.source_list#}}
+
+
+            === 尚未被引用的来源（共 {{#code_sources.n_sources#}} 条，其中内部知识库 {{#code_sources.n_kb#}} 条） ===
+
+            {{#code_sources.unused#}}'
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          role_prefix:
+            assistant: ''
+            user: ''
+          window:
+            enabled: true
+            size: 10
+        context:
+          enabled: false
+          variable_selector: []
+        vision:
+          enabled: false
+        variables: []
+      height: 98
+      id: llm_report
+      position:
+        x: 2400
+        y: 120
+      positionAbsolute:
+        x: 2400
+        y: 120
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 读报告里的 <!--CITED--> 清单，只保留真正被引用的来源，同时剥干净标记
+        selected: false
+        title: ⑫ᵇ 按实际引用生成来源表
+        type: code
+        variables:
+        - variable: text
+          value_selector:
+          - llm_report
+          - text
+        - variable: source_list
+          value_selector:
+          - code_sources
+          - source_list
+        code_language: python3
+        code: "import re\n\n\ndef main(text: str, source_list: str) -> dict:\n    raw = (text or \"\").replace(\"\\r\", \"\")\n    body = raw\n\n    # 优先读报告末尾的「引用清单：1, 3, 12, K1」；解析不到就用正文里实际出现的编号兜底\n    cited = []\n    m = re.search(r\"^\\s*引用清单[:：]\\s*(.+)$\", raw, re.M)\n    if m:\n        cited = re.findall(r\"(K?[0-9]+)\", m.group(1))\n        body = (raw[: m.start()] + raw[m.end():]).strip()\n\n    # 顺手清掉模型偶尔仍会吐的 HTML 注释\n    body = re.sub(r\"<!--.*?-->\", \"\", body, flags=re.S).strip()\n\n    if not cited:\n        cited = re.findall(r\"\\[([0-9]+|K[0-9]+)\\]\", body)\n\n    order = []\n    for c in cited:\n        if c not in order:\n            order.append(c)\n\n    rows = {}\n    for ln in (source_list or \"\").split(\"\\n\"):\n        ln = ln.strip()\n        if not ln:\n            continue\n        mm = re.match(r\"^(K?[0-9]+)\\.\\s\", ln)\n        if mm:\n            rows[mm.group(1)] = ln\n\n    # 先 K（内部资料）后网页，各自按编号顺序\n    picked_k = [c for c in order if c.startswith(\"K\") and c in rows]\n    picked_n = sorted(\n        [c for c in order if not c.startswith(\"K\") and c in rows], key=lambda x: int(x)\n    )\n    final = picked_k + picked_n\n\n    lines = [rows[c] for c in final]\n    cited_list = \"\\n\".join(lines) if lines else \"（正文没有引用任何来源）\"\n\n    return {\n        \"body\": body,\n        \"cited_list\": cited_list,\n        \"n_cited\": len(lines),\n        \"dropped\": max(0, len(rows) - len(lines)),\n    }\n"
+        outputs:
+          body:
+            type: string
+            children: null
+          cited_list:
+            type: string
+            children: null
+          n_cited:
+            type: number
+            children: null
+          dropped:
+            type: number
+            children: null
+      height: 98
+      id: code_cited
+      position:
+        x: 2500
+        y: 400
+      positionAbsolute:
+        x: 2500
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: offtopic == no（材料没跑偏）才写报告，否则回头追问
+        selected: false
+        title: ⑪ᵃ 材料是否可用
+        type: if-else
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: 8c1d4e27-6b93-4f5a-a2e8-73f0b9c4d156
+            value: 'no'
+            varType: string
+            variable_selector:
+            - code_parse
+            - offtopic
+          id: 'true'
+          logical_operator: and
+      height: 126
+      id: if_offtopic
+      position:
+        x: 2160
+        y: 480
+      positionAbsolute:
+        x: 2160
+        y: 480
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '这次没能锁定一个可调研的主题，暂时不出报告。
+
+
+          材料内容和你的问题对不上（或主题没定），继续写只会是跑题的报告。请补一句话，例如：
+
+
+          > 帮我调研**中国宠物烘焙粮**的市场规模与竞争格局，用于新品立项，看近三年数据
+
+
+          （要覆盖：调研对象 / 目标市场 / 用途 / 时间范围；也可以直接在开始节点上选好分类再问）'
+        desc: 材料跑偏时向用户要一个具体主题，不再凭空假设
+        selected: false
+        title: 追问：主题不明确
+        type: answer
+        variables: []
+      height: 105
+      id: answer_topic_missing
+      position:
+        x: 2400
+        y: 620
+      positionAbsolute:
+        x: 2400
+        y: 620
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#code_cited.body#}}
+
+
+          ---
+
+
+          ## 参考来源
+
+
+          {{#code_cited.cited_list#}}
+
+
+          > 正文中的 [n] 对应上方编号，链接为联网检索命中的原始页面；[K1] 这类编号来自内部知识库（历史调研报告库）。本表只列正文真正引用过的来源。'
+        desc: 报告正文 + 按实际引用生成的来源表
+        selected: false
+        title: ⑬ 输出报告
+        type: answer
+        variables: []
+      height: 105
+      id: answer_report
+      position:
+        x: 2680
+        y: 120
+      positionAbsolute:
+        x: 2680
+        y: 120
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.4

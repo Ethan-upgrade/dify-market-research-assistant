@@ -1,0 +1,67 @@
+﻿# 目标路径：.github/workflows/ci.yml
+# 推送到 GitHub 时，若 token 缺少 workflow scope，GitHub 会拒绝包含该文件的推送。
+# 启用方式（二选一）：
+#   1) gh auth refresh -s workflow  &&  mkdir -p .github/workflows && cp ci/github-actions-ci.yml .github/workflows/ci.yml && git add . && git commit -m 'ci' && git push
+#   2) 直接在 GitHub 网页上新建 .github/workflows/ci.yml，粘贴本文件内容
+
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: 单元测试（节点逻辑 + Tavily 请求契约 + 离线回放）
+        working-directory: standalone
+        run: |
+          python tests/test_nodes.py
+          python tests/test_search.py
+
+      - name: CLI 冒烟（离线 fixture，不联网、不调模型）
+        working-directory: standalone
+        run: |
+          python -m mra --help
+          python -c "import mra, mra.nodes, mra.pipeline, mra.search, mra.llm, mra.prompts; print('imports ok', mra.__version__)"
+
+  dsl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 校验 DSL 是合法 YAML 且含必需结构
+        run: |
+          pip install pyyaml
+          python - <<'PY'
+          import glob, sys, yaml
+          ok = True
+          for f in sorted(glob.glob("dsl/*.yml")):
+              try:
+                  d = yaml.safe_load(open(f, encoding="utf-8"))
+                  nodes = d["workflow"]["graph"]["nodes"]
+                  kinds = {n["data"]["type"] for n in nodes}
+                  print(f"{f}: {len(nodes)} nodes, types={sorted(kinds)}")
+                  assert "start" in kinds and "answer" in kinds
+              except Exception as e:
+                  ok = False
+                  print(f"{f}: FAIL {e}")
+          sys.exit(0 if ok else 1)
+          PY
+
+      - name: 校验 Python 语法
+        run: |
+          python -m py_compile scripts/*.py standalone/mra/*.py
