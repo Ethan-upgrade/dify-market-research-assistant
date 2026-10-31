@@ -12,4 +12,4 @@
 OpenAI 兼容的模型接口（外加可选的 Tavily Key）。
 """
 
-__version__ = "3.0.0"
+__version__ = "3.0.1"
