@@ -45,10 +45,16 @@ gh repo rename new-name                    # 改名
 
 ## 五、CI 怎么启用（重要）
 
-`.github/workflows/ci.yml` 能跑单测 + DSL 校验，但**推 workflow 文件需要 token 有 `workflow` scope**。
-本仓库当前的 gh token 只有 `gist / read:org / repo`，所以 CI 配置暂存在 [`ci/github-actions-ci.yml`](../ci/github-actions-ci.yml)。
+`.github/workflows/ci.yml` 能跑单测 + DSL 校验，但**用 OAuth token（`gho_…`）推 workflow 文件需要 `workflow` scope**。
+本仓库的 gh token 只有 `gist / read:org / repo`，所以第一次推的时候被 GitHub 拒了：
 
-启用方式二选一：
+```
+refusing to allow an OAuth App to create or update workflow `.github/workflows/ci.yml` without `workflow` scope
+```
+
+**已解决**：改用 SSH 推送（见下方方案 3），CI 现在已经是启用状态，可以在 Actions 页看到每次 push 的绿色记录。
+
+三种解法：
 
 ```powershell
 # 1) 补授权后本地推送
@@ -59,6 +65,17 @@ git add .github && git commit -m "ci: enable GitHub Actions" && git push
 ```
 
 2）直接在网页上新建 `.github/workflows/ci.yml`，把 `ci/github-actions-ci.yml` 的内容粘进去（网页操作不受 scope 限制）。
+
+**3）改用 SSH 推送（本仓库最终用的办法，已验证可行）**
+
+OAuth App token 会被拦，但 **SSH 走的是用户级密钥，不受 `workflow` scope 限制**：
+
+```powershell
+ssh -T git@github.com                       # 先确认已认证：Hi <user>! You've successfully authenticated
+git remote set-url origin git@github.com:<用户名>/dify-market-research-assistant.git
+git push origin main                        # 含 .github/workflows/ 的提交可以正常推上去
+```
+
 
 > 报错原文会是这样：`refusing to allow an OAuth App to create or update workflow .github/workflows/ci.yml without workflow scope`——不是你写错了，是授权范围问题。
 

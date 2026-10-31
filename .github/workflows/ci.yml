@@ -1,4 +1,4 @@
-﻿name: ci
+name: ci
 
 on:
   push:
@@ -22,6 +22,7 @@ jobs:
         working-directory: standalone
         run: |
           python tests/test_nodes.py
+          python tests/test_pipeline.py
           python tests/test_search.py
 
       - name: CLI 冒烟（离线 fixture，不联网、不调模型）

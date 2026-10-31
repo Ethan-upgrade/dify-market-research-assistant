@@ -117,6 +117,10 @@ def main() -> int:
         app_id = r.json()["app_id"]
         print("app_id:", app_id)
 
+        # Dify 导入时用的是 DSL 里自带的应用名，--name 不会自动生效，这里显式改名
+        pr = s.patch(f"{args.base}/console/api/apps/{app_id}", json={"name": args.name}, timeout=60)
+        print("rename ->", args.name, pr.status_code)
+
         draft = s.get(f"{args.base}/console/api/apps/{app_id}/workflows/draft", timeout=60).json()
         print("节点数:", len(draft["graph"]["nodes"]))
         wire_llm(draft["graph"])

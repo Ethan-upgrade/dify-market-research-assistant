@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 3.0.1
+
+- 新增 `standalone/tests/test_pipeline.py`：8 个编排层用例（正常成稿 / 追问分支 / 跑题拦截 / 轮数上限 / 引用裁剪 / 引擎摘要编号）。总计 39 个用例。
+- 修 `scripts/deploy_dsl.py`：Dify 导入会沿用 DSL 里的应用名，`--name` 现在会显式改名生效。
+- 启用 GitHub Actions（`ci.yml`）：三档 Python 单测 + DSL 结构校验 + 语法检查。
+- 文档补充：ssh 推送绕过 OAuth `workflow` scope 限制的做法。
+
 ## 3.0.0
 
 **新增 standalone 实现（route B）** —— 不依赖 Docker 的等价实现。

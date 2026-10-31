@@ -80,12 +80,12 @@ python -m mra --search fixture --fixture tests/fixtures/corpus.json `
 │  │  ├─ llm.py        # OpenAI 兼容 chat 客户端（含重试）
 │  │  ├─ pipeline.py   # 编排：需求解析 → 递归检索 → 撰写 → 引用表
 │  │  └─ cli.py        # 命令行入口
-│  └─ tests/           # 31 个用例：节点逻辑 + Tavily 请求契约 + 离线回放
+│  └─ tests/           # 39 个用例：节点逻辑 + 编排链路 + Tavily 契约 + 离线回放
 ├─ docs/                                  # 部署 / 架构 / 范围口径 / 排错 / 发布
 ├─ examples/                              # 实跑报告样例
 ├─ screenshots/                           # Dify 工作流截图
 ├─ scripts/                               # Dify 侧运维脚本（导入/发布/验证/自启）
-└─ ci/github-actions-ci.yml               # CI 配置（启用方法见 docs/08）
+└─ .github/workflows/ci.yml               # 单测 + DSL 结构校验（已在跑）
 ```
 
 ---
@@ -155,7 +155,10 @@ python scripts\verify_published.py --base http://127.0.0.1:8080 --mode smoke
 
 ## 6. 已验证什么
 
-- `standalone/tests` 31 个用例全绿（节点逻辑、Tavily 请求体逐字段契约、离线回放、引用表排序与剔除）。
+- `standalone/tests` **39 个用例全绿**（节点逻辑、编排链路、Tavily 请求体逐字段契约、离线回放、引用表排序与剔除）。
+- **GitHub Actions 已跑通**（Python 3.9 / 3.11 / 3.13 三档 + DSL 结构校验），最近一次 push 为绿。
+- **仓库里的 v3 DSL 在 Dify 1.9.1 上实测**：导入 → 26 节点全部实例化 → 模型接线 → 发布成功 → smoke 验证通过（走追问分支、无控制标记泄漏）。
+- **已发布版 full 回归**：14396 字 / 8 个二级标题 / 46 条来源（42 网页 + 4 知识库片段）/ 引用率 100% / 零悬空引用 / 零自造标注。
 - `examples/offline-demo-report.md` 是本仓库中真实跑出来的产物：7.6k 字、6 条来源、正文引用 6 条、零悬空编号。
 - DSL 三版在 Dify 1.9.1 上导入/发布/端到端实跑通过（含知识库接入与发布版 API 调用），细节见 `docs/` 与 `scripts/`。
 
