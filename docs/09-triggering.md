@@ -41,15 +41,15 @@ tools\run-report.cmd
 tools\run-report.cmd -Topic "调研胶囊咖啡在中国市场的竞争格局" -Market 中国大陆 -Depth 2
 ```
 
-**放到桌面**（一次操作，以后双击）：
+**放到桌面**（一条命令，以后双击图标就行）：
 
 ```powershell
-$s = (New-Object -ComObject WScript.Shell).CreateShortcut("$env:USERPROFILE\Desktop\跑一份调研.lnk")
-$s.TargetPath = "D:\dsh-workplace\dify-market-research-assistant\tools\run-report.cmd"
-$s.WorkingDirectory = "D:\dsh-workplace\dify-market-research-assistant"
-$s.IconLocation = "powershell.exe,0"
-$s.Save()
+tools\make-shortcut.ps1                     # 桌面出现「跑一份调研」
+tools\make-shortcut.ps1 -Remove             # 不想要了
 ```
+
+> 桌面在 OneDrive 下、且系统代码页非 UTF-8 时，中文快捷方式名可能写不进去，脚本会自动退回
+> ASCII 名 `Market-Research.lnk`（本机实测就是这种情况，图标已建好）。
 
 ---
 
