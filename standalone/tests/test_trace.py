@@ -5,6 +5,8 @@
 
 import os
 import sys
+
+os.environ.setdefault("MRA_FETCH_TTL", "0")   # 测试不读生产缓存
 import unittest
 from unittest import mock
 
