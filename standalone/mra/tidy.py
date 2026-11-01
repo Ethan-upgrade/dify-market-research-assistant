@@ -90,7 +90,9 @@ def renumber_citations(body: str, source_list: str) -> tuple:
     if not nums:
         return body, source_list
 
-    order = sorted(nums, key=lambda x: int(x))
+    # 按「传入的行顺序」重排（调用方已排好：知识库 → 真实网页 → 引擎摘要），
+    # 不能按旧编号排序，否则引擎摘要又会被顶回中间。
+    order = [n for n, _ in rows if not n.startswith("K")]
     mapping = {old: str(i + 1) for i, old in enumerate(order)}
 
     def sub(m):
@@ -105,6 +107,4 @@ def renumber_citations(body: str, source_list: str) -> tuple:
             new_rows.append(f"{old}. {rest}")
         else:
             new_rows.append(f"{mapping.get(old, old)}. {rest}")
-    new_rows.sort(key=lambda r: (0, int(r.split(".")[0][1:])) if r.startswith("K")
-                  else (1, int(r.split(".")[0])))
     return new_body, "\n".join(new_rows)

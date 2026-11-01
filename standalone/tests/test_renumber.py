@@ -41,6 +41,14 @@ class TestRenumber(unittest.TestCase):
         twice = tidy.renumber_citations(*once)
         self.assertEqual(once, twice)
 
+    def test_row_order_preserved_not_old_number_order(self):
+        # 调用方已把引擎摘要排到最后：旧编号 1 / 18 / 5，新编号必须按行序 1 / 2 / 3
+        src = "1. A — https://a\n18. R — https://r\n5. 引擎摘要 — Tavily answer 字段"
+        body, out = tidy.renumber_citations("正文[1][18][5]", src)
+        self.assertEqual(body, "正文[1][2][3]")
+        lines = out.split("\n")
+        self.assertTrue(lines[-1].startswith("3. 引擎摘要"))
+
     def test_no_sources_noop(self):
         body, src = tidy.renumber_citations("没有来源[1]", "")
         self.assertEqual(body, "没有来源[1]")
