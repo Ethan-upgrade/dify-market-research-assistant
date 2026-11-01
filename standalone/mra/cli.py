@@ -57,6 +57,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv=None) -> int:
+    try:                       # Windows 控制台默认非 UTF-8，中文输出会直接抛 UnicodeEncodeError
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
     args = build_parser().parse_args(argv)
 
     query = args.query or ""

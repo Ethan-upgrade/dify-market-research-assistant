@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 3.10.0
+
+**异步调研任务：`POST /research` 立刻返回 job_id，避免 HTTP 超时。**
+
+之前 `mra.serve` 只有同步的 `/check` 和 `/verify`。但一份报告要 2~3 分钟，Dify 的 HTTP 节点默认
+超时（60s）会在半路断开，整条工作流报错。
+
+- 新增 `POST /research` → `202 {"job_id", "status":"queued", "poll"}`，后台线程执行。
+- 新增 `GET /jobs/<id>` 轮询（`queued → running → done|failed`，失败带 `error`）、`DELETE /jobs/<id>` 清理。
+- 任务内存保存，TTL 1 小时、上限 100 个，自动淘汰最旧。
+- 新增 4 个用例（done / failed / 404 / delete），总计 **126 个**。
+
 ## 3.9.0
 
 **服务化：把体检能力暴露成 HTTP，补上 Dify 侧的最后一环。**

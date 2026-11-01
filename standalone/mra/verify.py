@@ -67,6 +67,12 @@ def check(markdown: str, timeout: int = 12, workers: int = 6, fetcher: str = "au
 
 
 def main(argv=None) -> int:
+    try:                       # Windows 控制台默认非 UTF-8，中文输出会直接抛 UnicodeEncodeError
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
     ap = argparse.ArgumentParser(prog="mra.verify", description="报告来源链接体检")
     ap.add_argument("report", help="报告 Markdown 路径")
     ap.add_argument("--timeout", type=int, default=12)

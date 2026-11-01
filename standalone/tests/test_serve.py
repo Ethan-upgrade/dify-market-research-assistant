@@ -41,8 +41,11 @@ class ServerCase(unittest.TestCase):
         cls.httpd.server_close()
 
     def _get(self, path):
-        with urllib.request.urlopen(f"http://127.0.0.1:{self.port}{path}", timeout=10) as r:
-            return r.status, json.loads(r.read().decode())
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{self.port}{path}", timeout=10) as r:
+                return r.status, json.loads(r.read().decode())
+        except urllib.error.HTTPError as e:
+            return e.code, json.loads(e.read().decode())
 
     def _post(self, path, obj):
         req = urllib.request.Request(
@@ -84,6 +87,62 @@ class TestServe(ServerCase):
             self.assertEqual(code, 401)
         finally:
             os.environ.pop("MRA_TOKEN", None)
+
+
+class TestAsyncResearch(ServerCase):
+    """POST /research 异步任务：不阻塞、可轮询、失败有错误信息。"""
+
+    def test_research_job_done(self):
+        import time
+        from unittest import mock
+
+        def fake(payload):
+            time.sleep(0.15)
+            return {"markdown": "# 报告", "chars": 4, "check": {"ok": True}}
+
+        with mock.patch.object(serve, "_run_research", side_effect=fake):
+            code, body = self._post("/research", {"query": "调研胶囊咖啡"})
+            self.assertEqual(code, 202)
+            jid = body["job_id"]
+            self.assertTrue(jid)
+            for _ in range(40):
+                c, j = self._get("/jobs/" + jid)
+                if j["status"] in ("done", "failed"):
+                    break
+                time.sleep(0.05)
+        self.assertEqual(c, 200)
+        self.assertEqual(j["status"], "done", j)
+        self.assertEqual(j["result"]["markdown"], "# 报告")
+
+    def test_research_job_failed(self):
+        import time
+        from unittest import mock
+
+        with mock.patch.object(serve, "_run_research", side_effect=RuntimeError("模型超时")):
+            code, body = self._post("/research", {"query": "x"})
+            jid = body["job_id"]
+            for _ in range(40):
+                c, j = self._get("/jobs/" + jid)
+                if j["status"] == "failed":
+                    break
+                time.sleep(0.05)
+        self.assertEqual(j["status"], "failed")
+        self.assertIn("模型超时", j["error"])
+
+    def test_job_not_found(self):
+        code, body = self._get("/jobs/nonexistent")
+        self.assertEqual(code, 404)
+
+    def test_delete_job(self):
+        from unittest import mock
+        with mock.patch.object(serve, "_run_research", return_value={"markdown": "x"}):
+            _, body = self._post("/research", {"query": "x"})
+        jid = body["job_id"]
+        req = urllib.request.Request(f"http://127.0.0.1:{self.port}/jobs/{jid}", method="DELETE")
+        with urllib.request.urlopen(req, timeout=10) as r:
+            self.assertEqual(r.status, 200)
+        code, _ = self._get("/jobs/" + jid)
+        self.assertEqual(code, 404)
 
 
 if __name__ == "__main__":
