@@ -40,6 +40,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--base-url", default=None, help="OpenAI 兼容 base_url，覆盖 MRA_BASE_URL")
     p.add_argument("-o", "--out", default=None, help="报告输出路径（默认打印到 stdout）")
     p.add_argument("--json", action="store_true", help="额外输出一行 JSON 元数据到 stderr")
+    p.add_argument("--no-check", dest="no_check", action="store_true",
+                   help="跳过报告自检（悬空引用/来源利用率/章节数/篇幅）")
+    p.add_argument("--min-chars", dest="min_chars", type=int, default=3000, help="自检：报告最少字数")
+    p.add_argument("--min-cited-ratio", dest="min_cited_ratio", type=float, default=0.6,
+                   help="自检：来源被引用率下限（默认 0.6）")
     p.add_argument("-q", "--quiet", action="store_true", help="不打印过程日志")
     p.add_argument("-V", "--version", action="version", version="mra " + __version__)
     return p
@@ -97,6 +102,26 @@ def main(argv=None) -> int:
     else:
         print(report.markdown)
 
+    # 出完报告自检：默认开，--no-check 关。不合格不删报告，只报警并把退出码改成 1。
+    check = None
+    if not report.unclear and not getattr(args, "no_check", False):
+        from .checks import check_report
+        check = check_report(
+            report.markdown,
+            min_chars=getattr(args, "min_chars", 3000),
+            min_cited_ratio=getattr(args, "min_cited_ratio", 0.6),
+        )
+        if not check["ok"]:
+            print("\n⚠ 报告体检未通过：", file=sys.stderr)
+            for p in check["problems"]:
+                print("   - " + p, file=sys.stderr)
+            print("   （报告已保留，请人工复核；--no-check 可关闭自检）", file=sys.stderr)
+        elif not args.quiet:
+            m = check["metrics"]
+            print(f"\n✓ 体检通过：{m['chars']} 字 / {m['chapters']} 章 / "
+                  f"来源 {m['web']} 条（引用 {m['cited']}，{m['ratio']:.0%}）"
+                  + (f" / 知识库 {m['kb']} 条" if m["kb"] else ""), file=sys.stderr)
+
     if args.json:
         import json
         meta = {
@@ -105,9 +130,15 @@ def main(argv=None) -> int:
             "cited": report.n_cited, "unclear": report.unclear,
             "chars": len(report.markdown), **report.meta,
         }
+        if check is not None:
+            meta["check"] = check
         print(json.dumps(meta, ensure_ascii=False), file=sys.stderr)
 
-    return 0 if not report.unclear else 3
+    if report.unclear:
+        return 3
+    if check is not None and not check["ok"]:
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

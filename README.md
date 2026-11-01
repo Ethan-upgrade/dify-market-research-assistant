@@ -64,6 +64,10 @@ python -m mra --search fixture --fixture tests/fixtures/corpus.json `
 
 ### 日常五种触发方式（详见 [docs/09-triggering.md](docs/09-triggering.md)）
 
+出报告后会**自动体检**并打印 `✓ 体检通过：8628 字 / 7 章 / 来源 26 条（引用 26，100%）`；
+不合格（悬空引用、字数不足、来源利用率低）会逐条列出问题、退出码改为 1，但**报告保留**供人工复核。
+不想自检加 `--no-check`。
+
 | 方式 | 命令 | 场景 |
 |---|---|---|
 | 命令行 | `python -m mra "调研 XX 市场" --depth 3 -o r.md` | 随手问 |
@@ -91,7 +95,7 @@ python -m mra --search fixture --fixture tests/fixtures/corpus.json `
 │  │  ├─ llm.py        # OpenAI 兼容 chat 客户端（含重试）
 │  │  ├─ pipeline.py   # 编排：需求解析 → 递归检索 → 撰写 → 引用表
 │  │  └─ cli.py        # 命令行入口
-│  └─ tests/           # 44 个用例：节点逻辑/编排/契约/.env 加载
+│  └─ tests/           # 54 个用例：节点/编排/契约/.env/报告体检
 ├─ docs/                                  # 部署 / 架构 / 范围口径 / 排错 / 发布
 ├─ examples/                              # 实跑报告样例
 ├─ screenshots/                           # Dify 工作流截图
@@ -169,7 +173,7 @@ python scripts\verify_published.py --base http://127.0.0.1:8080 --mode smoke
 
 ## 6. 已验证什么
 
-- `standalone/tests` **44 个用例全绿**（节点逻辑、编排链路、`.env` 加载、Tavily 请求体逐字段契约、离线回放、引用表排序与剔除）。
+- `standalone/tests` **54 个用例全绿**（节点逻辑、编排链路、`.env` 加载、报告体检规则、Tavily 请求体逐字段契约、离线回放、引用表排序与剔除）。
 - **GitHub Actions 已跑通**（Python 3.9 / 3.11 / 3.13 三档 + DSL 结构校验），最近一次 push 为绿。
 - **仓库里的 v3 DSL 在 Dify 1.9.1 上实测**：导入 → 26 节点全部实例化 → 模型接线 → 发布成功 → smoke 验证通过（走追问分支、无控制标记泄漏）。
 - **已发布版 full 回归**：14396 字 / 8 个二级标题 / 46 条来源（42 网页 + 4 知识库片段）/ 引用率 100% / 零悬空引用 / 零自造标注。
