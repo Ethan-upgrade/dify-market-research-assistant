@@ -182,5 +182,54 @@ class TestFixtureCorpus(unittest.TestCase):
         self.assertIn("example.com", r.markdown)
 
 
+class TestOptimizations(unittest.TestCase):
+    """3.8：并行检索 + 按需降噪。"""
+
+    def test_normalize_skipped_when_density_ok(self):
+        long_ok = REPORT_OK.replace("## 三、竞争格局\n…[2]",
+                                    "## 三、竞争格局\n" + "竞争格局分析。" * 150 + "[2]")
+        llm = StubLLM([BRIEF_OK, ANALYZE_DONE, long_ok])
+        pipe = Pipeline(llm, StubBackend(results_per_query=2), Scope(depth="2"), verbose=False)
+        r = pipe.run("调研胶囊咖啡市场")
+        self.assertEqual(llm.calls, 3)          # brief + analyze + report，没有降噪调用
+        self.assertIn("## 参考来源", r.markdown)
+
+
+class TestHygienePredicate(unittest.TestCase):
+    def test_low_density_ok(self):
+        body = ("## 一、x\n" + "正文内容。" * 300 + "[1]")
+        self.assertTrue(Pipeline._citation_hygiene_ok(body))
+
+    def test_high_density_not_ok(self):
+        body = "## 一、x\n" + "[1]" * 200
+        self.assertFalse(Pipeline._citation_hygiene_ok(body))
+
+    def test_long_run_not_ok(self):
+        body = "## 一、x\n" + "正文。" * 500 + "[1][2][3][4]"
+        self.assertFalse(Pipeline._citation_hygiene_ok(body))
+
+    def test_normalize_runs_when_dense(self):
+        dense = REPORT_OK.replace("市场规模约 58 亿元[1]", "58 亿元[1][1][1][1][1]")
+        llm = StubLLM([BRIEF_OK, ANALYZE_DONE, dense, "## 一、x\n" + "填充。" * 2000])
+        pipe = Pipeline(llm, StubBackend(results_per_query=2), Scope(depth="2"), verbose=False)
+        pipe.run("调研胶囊咖啡市场")
+        self.assertGreaterEqual(llm.calls, 4)   # 触发了降噪
+
+    def test_searches_run_in_parallel(self):
+        import time
+
+        class SlowBackend(StubBackend):
+            def search(self, query):
+                time.sleep(0.12)
+                return super().search(query)
+
+        llm = StubLLM([BRIEF_OK, ANALYZE_DONE, REPORT_OK])
+        pipe = Pipeline(llm, SlowBackend(), Scope(depth="2"), verbose=False)
+        t0 = time.time()
+        pipe.run("调研胶囊咖啡市场")
+        # 串行至少 0.24s，并行约 0.12s
+        self.assertLess(time.time() - t0, 0.22)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -67,8 +67,12 @@ class Pipeline:
             pick = nodes.pick_round(cur_q1, cur_q2, seed["q1"], seed["q2"], knowledge, max_rounds)
             self.log(f"③ 第 {pick['round']}/{max_rounds} 轮检索：{pick['q1']} ／ {pick['q2']}")
 
-            raw_a = self.backend.search(pick["q1"] + " 行业数据 报告")
-            raw_b = self.backend.search(pick["q2"] + " 行业数据 报告")
+            # 两路检索互不依赖，并行发出（每轮省约 4~8 秒）
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=2) as ex:
+                fa = ex.submit(self.backend.search, pick["q1"] + " 行业数据 报告")
+                fb = ex.submit(self.backend.search, pick["q2"] + " 行业数据 报告")
+                raw_a, raw_b = fa.result(), fb.result()
             self.log(f"   ⑤⑥ 检索完成：A {len(raw_a.get('results') or [])} 条 / B {len(raw_b.get('results') or [])} 条")
 
             packed = nodes.pack_results(raw_a, raw_b, registry, round_no=pick["round"])
@@ -108,7 +112,10 @@ class Pipeline:
             temperature=0.7, max_tokens=16384,
         )
         if getattr(self, "normalize_citations", True):
-            body = self._normalize_citations(body)
+            if self._citation_hygiene_ok(body):
+                self.log("⑫ᵃ 引用密度已达标，跳过降噪（省一次模型调用）")
+            else:
+                body = self._normalize_citations(body)
         cited = nodes.build_cited_table(body, src["source_list"])
         # 编号连续化：剔掉未引用来源后，正文与来源表一起重排成 1..N
         cited["body"], cited["cited_list"] = tidy.renumber_citations(
@@ -141,6 +148,24 @@ class Pipeline:
             meta={"本文字数": len(out["body"]), "模型调用": self.llm.calls,
                   "tokens": self.llm.tokens, "检索次数": getattr(self.backend, "calls", 0)},
         )
+
+
+    @staticmethod
+    def _citation_hygiene_ok(body: str) -> bool:
+        """判断是否还需要「拆引用」：密度低、无 4 连写、无同段刷标就不用再调模型。"""
+        import re as _re
+        marks = _re.findall(r"\[(?:\d+|K\d+)\]", body)
+        chars = max(1, len(body))
+        if len(marks) * 100.0 / chars > 3.0:
+            return False
+        if _re.search(r"(?:\[\d+\]){4,}", body):
+            return False
+        for para in _re.split(r"\n\s*\n", body):
+            prose = "\n".join(ln for ln in para.split("\n") if not ln.strip().startswith("|"))
+            nums = _re.findall(r"\[(\d+|K\d+)\]", prose)
+            if nums and max(nums.count(x) for x in set(nums)) > 3:
+                return False
+        return True
 
     def _normalize_citations(self, body: str) -> str:
         """第二次过模型，只做引用降噪（合并同句重复标注）。失败则原样返回。"""
