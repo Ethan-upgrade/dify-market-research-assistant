@@ -103,7 +103,8 @@ class TestCheck(unittest.TestCase):
     def test_thresholds_configurable(self):
         short = "## 一、x\n[1]\n## 参考来源\n\n1. a — https://a"
         self.assertFalse(check_report(short)["ok"])
-        self.assertTrue(check_report(short, min_chars=1, min_chapters=1)["ok"])
+        self.assertTrue(check_report(short, min_chars=1, min_chapters=1,
+                                     max_marks_per_100=999)["ok"])
 
 
 if __name__ == "__main__":

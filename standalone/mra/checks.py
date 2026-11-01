@@ -26,6 +26,10 @@ def parse_report(markdown: str) -> dict:
     cited_web = {int(x) for x in re.findall(r"\[(\d+)\]", body)}
     cited_kb = {int(x) for x in re.findall(r"\[K(\d+)\]", body)}
     chapters = [ln for ln in body.split("\n") if ln.startswith("## ")]
+    marks = re.findall(r"\[(\d+|K\d+)\]", body)
+    per_source = {}
+    for m in marks:
+        per_source[m] = per_source.get(m, 0) + 1
     return {
         "body": body,
         "source_block": src,
@@ -35,11 +39,15 @@ def parse_report(markdown: str) -> dict:
         "cited_kb": cited_kb,
         "chapters": chapters,
         "chars": len(text),
+        "mark_total": len(marks),
+        "per_source": per_source,
+        "body_chars": len(body),
     }
 
 
 def check_report(markdown: str, min_chars: int = 3000,
-                 min_cited_ratio: float = 0.6, min_chapters: int = 7) -> dict:
+                 min_cited_ratio: float = 0.6, min_chapters: int = 7,
+                 max_marks_per_100: float = 8.0, max_same_in_paragraph: int = 5) -> dict:
     """体检一份报告，返回 {ok, problems[], metrics{}}。"""
     p = parse_report(markdown)
     problems = []
@@ -71,6 +79,36 @@ def check_report(markdown: str, min_chars: int = 3000,
     if ratio < min_cited_ratio:
         problems.append(f"来源利用率 {ratio:.0%} 低于下限 {min_cited_ratio:.0%}")
 
+    # 引用密度：标注太多等于刷标，读者没法看
+    body_chars = p["body_chars"] or 1
+    density = p["mark_total"] * 100.0 / body_chars
+    if density > max_marks_per_100:
+        problems.append(
+            f"引用密度过高（每百字 {density:.1f} 处 > 上限 {max_marks_per_100:.0f}），"
+            f"共 {p['mark_total']} 处标注")
+
+    # 同一编号在一段里反复出现
+    spam = []
+    for para in re.split(r"\n\s*\n", p["body"]):
+        marks = re.findall(r"\[(\d+|K\d+)\]", para)
+        if not marks:
+            continue
+        top = max(set(marks), key=marks.count)
+        if marks.count(top) > max_same_in_paragraph:
+            spam.append(f"[{top}]×{marks.count(top)}")
+    if spam:
+        problems.append(f"同一来源在一段内重复标注过多：{', '.join(spam[:5])}")
+
+    # 连续三连标注 [a][b][c]（4 个及以上）通常是刷标
+    runs = re.findall(r"(?:\[\d+\]){4,}", p["body"])
+    if runs:
+        problems.append(f"存在连续 4 个以上引用标注（{len(runs)} 处，如 {runs[0][:40]}）")
+
+    # 表格里有「来源」列却整列空白 → 数字全裸，无出处
+    blank_src_rows = count_blank_source_rows(p["body"])
+    if blank_src_rows:
+        problems.append(f"表格「来源」列有 {blank_src_rows} 行空白，数字无出处")
+
     return {
         "ok": not problems,
         "problems": problems,
@@ -81,5 +119,35 @@ def check_report(markdown: str, min_chars: int = 3000,
             "kb": len(p["kb"]),
             "cited": used,
             "ratio": round(ratio, 4),
+            "marks": p["mark_total"],
+            "density": round(density, 2),
         },
     }
+
+def count_blank_source_rows(body: str) -> int:
+    """统计「来源」列整列空白的表格行数（表头最后一个是 来源/出处/引用）。"""
+    bad = 0
+    lines = body.split("\n")
+    for i, ln in enumerate(lines):
+        s = ln.strip()
+        if not s.startswith("|") or "---" in s:
+            continue
+        cells = [c.strip() for c in s.strip("|").split("|")]
+        if not cells:
+            continue
+        # 找本表的表头行（该行首格不是纯数字/数字+单位）
+        header = None
+        for j in range(i, max(-1, i - 40), -1):
+            h = lines[j].strip()
+            if h.startswith("|") and "---" not in h:
+                hc = [c.strip() for c in h.strip("|").split("|")]
+                if any(("来源" in c) or ("出处" in c) for c in hc):
+                    header = hc
+                    break
+        if header is None or "来源" not in "".join(header) and "出处" not in "".join(header):
+            continue
+        if len(cells) == len(header) and cells[-1] == "":
+            # 该行前面几列里有数字，但来源列空
+            if re.search(r"\d", " ".join(cells[:-1])):
+                bad += 1
+    return bad

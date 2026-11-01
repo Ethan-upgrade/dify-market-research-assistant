@@ -40,11 +40,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--base-url", default=None, help="OpenAI 兼容 base_url，覆盖 MRA_BASE_URL")
     p.add_argument("-o", "--out", default=None, help="报告输出路径（默认打印到 stdout）")
     p.add_argument("--json", action="store_true", help="额外输出一行 JSON 元数据到 stderr")
+    p.add_argument("--no-normalize", dest="no_normalize", action="store_true",
+                   help="跳过引用降噪（默认会再调一次模型合并重复标注）")
     p.add_argument("--no-check", dest="no_check", action="store_true",
                    help="跳过报告自检（悬空引用/来源利用率/章节数/篇幅）")
     p.add_argument("--min-chars", dest="min_chars", type=int, default=3000, help="自检：报告最少字数")
     p.add_argument("--min-cited-ratio", dest="min_cited_ratio", type=float, default=0.6,
                    help="自检：来源被引用率下限（默认 0.6）")
+    p.add_argument("--max-density", dest="max_density", type=float, default=6.0,
+                   help="自检：每百字引用标注数上限（默认 6）")
     p.add_argument("-q", "--quiet", action="store_true", help="不打印过程日志")
     p.add_argument("-V", "--version", action="version", version="mra " + __version__)
     return p
@@ -86,7 +90,8 @@ def main(argv=None) -> int:
         print("检索后端初始化失败：" + str(e), file=sys.stderr)
         return 2
 
-    pipe = Pipeline(llm, backend, scope, verbose=not args.quiet)
+    pipe = Pipeline(llm, backend, scope, verbose=not args.quiet,
+                    normalize_citations=not getattr(args, "no_normalize", False))
     try:
         report = pipe.run(query)
     except (LLMError, SearchError) as e:
@@ -110,6 +115,7 @@ def main(argv=None) -> int:
             report.markdown,
             min_chars=getattr(args, "min_chars", 3000),
             min_cited_ratio=getattr(args, "min_cited_ratio", 0.6),
+            max_marks_per_100=getattr(args, "max_density", 6.0),
         )
         if not check["ok"]:
             print("\n⚠ 报告体检未通过：", file=sys.stderr)
@@ -120,6 +126,7 @@ def main(argv=None) -> int:
             m = check["metrics"]
             print(f"\n✓ 体检通过：{m['chars']} 字 / {m['chapters']} 章 / "
                   f"来源 {m['web']} 条（引用 {m['cited']}，{m['ratio']:.0%}）"
+                  f" / 标注 {m['marks']} 处（每百字 {m['density']}）"
                   + (f" / 知识库 {m['kb']} 条" if m["kb"] else ""), file=sys.stderr)
 
     if args.json:

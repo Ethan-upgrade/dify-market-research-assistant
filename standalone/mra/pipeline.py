@@ -28,11 +28,12 @@ def _now() -> str:
 
 
 class Pipeline:
-    def __init__(self, llm, backend, scope: Scope, verbose: bool = True):
+    def __init__(self, llm, backend, scope: Scope, verbose: bool = True, normalize_citations: bool = True):
         self.llm = llm
         self.backend = backend
         self.scope = scope
         self.verbose = verbose
+        self.normalize_citations = normalize_citations
         self._t0 = time.time()
 
     def log(self, msg: str) -> None:
@@ -106,6 +107,8 @@ class Pipeline:
                                 src["unused"], src["n_sources"], src["n_kb"]),
             temperature=0.7, max_tokens=16384,
         )
+        if getattr(self, "normalize_citations", True):
+            body = self._normalize_citations(body)
         cited = nodes.build_cited_table(body, src["source_list"])
         self.log(f"⑫ᵇ 正文引用 {cited['n_cited']} 条来源，剔除未引用 {cited['dropped']} 条")
         return {"body": cited["body"], "cited_list": cited["cited_list"],
@@ -135,6 +138,41 @@ class Pipeline:
             meta={"本文字数": len(out["body"]), "模型调用": self.llm.calls,
                   "tokens": self.llm.tokens, "检索次数": getattr(self.backend, "calls", 0)},
         )
+
+    def _normalize_citations(self, body: str) -> str:
+        """第二次过模型，只做引用降噪（合并同句重复标注）。失败则原样返回。"""
+        before = body.count("[")
+        try:
+            cleaned = self.llm.chat(
+                prompts.CITE_NORMALIZE,
+                body + "\n\n（以上是待清理的正文，请输出清理后的正文）",
+                temperature=0.0, max_tokens=16384,
+            )
+        except Exception as e:                      # 降噪失败不能影响主流程
+            self.log(f"⑫ᵃ 引用降噪失败，保留原文：{e}")
+            return body
+        # 防御①：结构必须还在（章节、长度不许缩水 40% 以上）
+        if "## " not in cleaned or len(cleaned) < len(body) * 0.6:
+            self.log("⑫ᵃ 引用降噪结果异常，保留原文")
+            return body
+
+        # 防御②：优先看「表格来源列是否还有出处」，比长度更硬的指标
+        from .checks import count_blank_source_rows
+        blank_before, blank_after = count_blank_source_rows(body), count_blank_source_rows(cleaned)
+        if blank_after > blank_before:
+            self.log(f"⑫ᵃ 降噪把表格来源列削空了（{blank_before} → {blank_after}），保留原文")
+            return body
+
+        # 防御③：来源编号不许丢太多（丢了就是伪造出处）
+        from .checks import parse_report
+        lost = set(parse_report(body)["cited_web"]) - set(parse_report(cleaned)["cited_web"])
+        if len(lost) > max(2, len(parse_report(body)["cited_web"]) // 3):
+            self.log(f"⑫ᵃ 降噪丢了来源编号 {sorted(lost)}，保留原文")
+            return body
+
+        after = cleaned.count("[")
+        self.log(f"⑫ᵃ 引用降噪：[{before} → {after} 处标注")
+        return cleaned
 
     def _compose(self, query: str, out: dict) -> str:
         head = (
