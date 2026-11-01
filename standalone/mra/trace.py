@@ -89,25 +89,10 @@ def hit(value: str, pages: set) -> bool:
     return any(abs(v - p) <= tol for p in pages)
 
 
-def strip_html(raw: str) -> str:
-    raw = re.sub(r"(?is)<(script|style|noscript).*?</\1>", " ", raw)
-    raw = re.sub(r"(?s)<[^>]+>", " ", raw)
-    return html.unescape(raw)
-
-
-def fetch_text(url: str, timeout: int = 15) -> dict:
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            ctype = (r.headers.get("Content-Type") or "").lower()
-            blob = r.read(3_000_000)
-        if "pdf" in ctype or url.lower().endswith(".pdf"):
-            return {"ok": False, "reason": "PDF 无法直接比对", "text": ""}
-        return {"ok": True, "reason": "", "text": strip_html(blob.decode("utf-8", "ignore"))}
-    except urllib.error.HTTPError as e:
-        return {"ok": False, "reason": f"HTTP {e.code}", "text": ""}
-    except Exception as e:
-        return {"ok": False, "reason": str(e)[:60], "text": ""}
+def fetch_text(url: str, timeout: int = 15, fetcher: str = "auto") -> dict:
+    from .fetch import fetch_text as _ft
+    r = _ft(url, timeout, fetcher)
+    return {"ok": r["ok"], "reason": r["reason"], "text": r["text"], "engine": r["engine"]}
 
 
 def tables(markdown: str) -> list:
@@ -167,11 +152,11 @@ def extract_claims(markdown: str) -> list:
     return claims
 
 
-def check(markdown: str, timeout: int = 15, workers: int = 6) -> dict:
+def check(markdown: str, timeout: int = 15, workers: int = 6, fetcher: str = "auto") -> dict:
     claims = extract_claims(markdown)
     urls = sorted({c["url"] for c in claims})
     with ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
-        pages = dict(zip(urls, ex.map(lambda u: fetch_text(u, timeout), urls)))
+        pages = dict(zip(urls, ex.map(lambda u: fetch_text(u, timeout, fetcher), urls)))
 
     rows = []
     for c in claims:
@@ -203,6 +188,8 @@ def main(argv=None) -> int:
     ap.add_argument("report")
     ap.add_argument("--timeout", type=int, default=15)
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--fetcher", default="auto",
+                   choices=["auto", "urllib", "curl_cffi", "playwright", "firecrawl"])
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--min-ratio", type=float, default=-1,
                    help="可选：命中率低于该值退出码 1（默认不卡，只做提示）")
@@ -210,7 +197,7 @@ def main(argv=None) -> int:
 
     with open(args.report, encoding="utf-8") as f:
         md = f.read()
-    res = check(md, args.timeout, args.workers)
+    res = check(md, args.timeout, args.workers, args.fetcher)
 
     if args.json:
         print(json.dumps(res, ensure_ascii=False, indent=1))

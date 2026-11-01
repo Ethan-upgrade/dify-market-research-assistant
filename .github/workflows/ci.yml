@@ -29,6 +29,7 @@ jobs:
           python tests/test_tidy.py
           python tests/test_renumber.py
           python tests/test_trace.py
+          python tests/test_fetch.py
           python tests/test_verify.py
           python tests/test_search.py
 

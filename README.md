@@ -90,7 +90,26 @@ python -m mra.verify report.md --workers 8
    ✗ [4] https://www.iimedia.cn/c400/106703.html —— The read operation timed out
 ```
 
-判定分三档：`OK`（2xx）、`BOT`（403/412 反爬，不算死链）、`DEAD`（404/DNS/超时，退出码 1）。
+判定分五档：`OK`、`BOT`（反爬，不算死链）、`PDF`（二进制，无法文本比对）、`DEAD`（404/DNS/超时）。
+
+**抓取引擎链（3.6）**：`urllib` 拿不到就自动换引擎，`--fetcher auto` 是默认。
+
+| 层 | 项目 | GitHub 星 | 作用 |
+|---|---|---|---|
+| 1 | 标准库 urllib | — | 最快，能拿就拿 |
+| 2 | [curl_cffi](https://github.com/lexiforest/curl_cffi) | 6.8k | 伪造 Chrome TLS 指纹，专治「UA 一样却 403」 |
+| 3 | [playwright](https://github.com/microsoft/playwright) | 99k | 真 Chrome 内核，跑 JS / 过简单挑战 |
+| 4 | [firecrawl](https://github.com/firecrawl/firecrawl) | 197k | 抓取服务，最重的兜底（需 Key 或自建） |
+
+同一份报告（17 条来源）实测：
+
+| 策略 | 正常 | 反爬 | PDF | 死链 |
+|---|---|---|---|---|
+| `--fetcher urllib` | 9 | 6 | 2 | 0 |
+| `--fetcher curl_cffi` | 11 | 4 | 2 | 0 |
+| `--fetcher auto` | **14** | **0** | 2 | 1 |
+
+（`crawl4ai` 86.7k★ 也可以接，但它需要跑独立服务 + Playwright 浏览器，对「验几条链接」这件事太重，没纳入默认链。）
 同时报告会自动做**编号连续化**（剔掉未引用来源后重排为 1..N，避免「11 直接跳 13」），
 并把「Tavily 引擎摘要」单独列出、**不计入来源数**（它不是原始出处）。
 
@@ -140,7 +159,7 @@ python -m mra.trace report.md --workers 8
 │  │  ├─ llm.py        # OpenAI 兼容 chat 客户端（含重试）
 │  │  ├─ pipeline.py   # 编排：需求解析 → 递归检索 → 撰写 → 引用表
 │  │  └─ cli.py        # 命令行入口
-│  └─ tests/           # 103 个用例：节点/编排/体检/整理/链接/溯源
+│  └─ tests/           # 110 个用例：节点/编排/体检/整理/链接/溯源/抓取
 ├─ docs/                                  # 部署 / 架构 / 范围口径 / 排错 / 发布
 ├─ examples/                              # 实跑报告样例
 ├─ screenshots/                           # Dify 工作流截图
@@ -218,7 +237,7 @@ python scripts\verify_published.py --base http://127.0.0.1:8080 --mode smoke
 
 ## 6. 已验证什么
 
-- `standalone/tests` **103 个用例全绿**（节点逻辑、编排链路、`.env` 加载、报告体检、引用整理、链接体检、数字溯源、Tavily 契约、离线回放）。
+- `standalone/tests` **110 个用例全绿**（节点逻辑、编排、`.env`、体检、引用整理、链接体检、数字溯源、抓取引擎链、Tavily 契约）。
 - **GitHub Actions 已跑通**（Python 3.9 / 3.11 / 3.13 三档 + DSL 结构校验），最近一次 push 为绿。
 - **仓库里的 v3 DSL 在 Dify 1.9.1 上实测**：导入 → 26 节点全部实例化 → 模型接线 → 发布成功 → smoke 验证通过（走追问分支、无控制标记泄漏）。
 - **已发布版 full 回归**：14396 字 / 8 个二级标题 / 46 条来源（42 网页 + 4 知识库片段）/ 引用率 100% / 零悬空引用 / 零自造标注。

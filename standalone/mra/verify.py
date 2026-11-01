@@ -20,6 +20,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 from .checks import parse_report
+from .fetch import fetch_text as _fetch_text
 
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"
 
@@ -36,31 +37,33 @@ def parse_sources(markdown: str) -> list:
     return out
 
 
-def fetch(url: str, timeout: int = 12) -> dict:
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            size = len(r.read(65536))
-            return {"status": r.status, "size": size, "verdict": "ok", "error": ""}
-    except urllib.error.HTTPError as e:
-        if e.code in (401, 403, 405, 412, 429):
-            return {"status": e.code, "size": 0, "verdict": "blocked", "error": f"HTTP {e.code}"}
-        return {"status": e.code, "size": 0, "verdict": "dead", "error": f"HTTP {e.code}"}
-    except Exception as e:                      # DNS / 超时 / TLS
-        return {"status": 0, "size": 0, "verdict": "dead", "error": str(e)[:80]}
+def fetch(url: str, timeout: int = 12, fetcher: str = "auto") -> dict:
+    r = _fetch_text(url, timeout, fetcher)
+    if r["ok"]:
+        return {"status": r["status"], "size": len(r["text"]), "verdict": "ok",
+                "error": "", "engine": r["engine"]}
+    code = r["status"]
+    if "PDF" in (r["reason"] or ""):
+        verdict = "pdf"
+    else:
+        verdict = "blocked" if code in (401, 403, 405, 412, 429) else "dead"
+    return {"status": code, "size": 0, "verdict": verdict,
+            "error": r["reason"], "engine": r["engine"]}
 
 
-def check(markdown: str, timeout: int = 12, workers: int = 6) -> dict:
+def check(markdown: str, timeout: int = 12, workers: int = 6, fetcher: str = "auto") -> dict:
     srcs = parse_sources(markdown)
     with ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
-        results = list(ex.map(lambda s: fetch(s["url"], timeout), srcs))
+        results = list(ex.map(lambda s: fetch(s["url"], timeout, fetcher), srcs))
     rows = []
     for s, r in zip(srcs, results):
         rows.append({**s, **r})
     ok = sum(1 for r in rows if r["verdict"] == "ok")
     blocked = sum(1 for r in rows if r["verdict"] == "blocked")
     dead = sum(1 for r in rows if r["verdict"] == "dead")
-    return {"total": len(rows), "ok": ok, "blocked": blocked, "dead": dead, "rows": rows}
+    pdf = sum(1 for r in rows if r["verdict"] == "pdf")
+    return {"total": len(rows), "ok": ok, "blocked": blocked, "dead": dead,
+            "pdf": pdf, "rows": rows}
 
 
 def main(argv=None) -> int:
@@ -68,22 +71,25 @@ def main(argv=None) -> int:
     ap.add_argument("report", help="报告 Markdown 路径")
     ap.add_argument("--timeout", type=int, default=12)
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--fetcher", default="auto",
+                   choices=["auto", "urllib", "curl_cffi", "playwright", "firecrawl"])
     ap.add_argument("--json", action="store_true", help="输出 JSON")
     args = ap.parse_args(argv)
 
     with open(args.report, encoding="utf-8") as f:
         md = f.read()
 
-    res = check(md, args.timeout, args.workers)
+    res = check(md, args.timeout, args.workers, args.fetcher)
     if args.json:
         print(json.dumps(res, ensure_ascii=False, indent=1))
     else:
-        icon = {"ok": "OK ", "blocked": "BOT", "dead": "DEAD"}
+        icon = {"ok": "OK ", "blocked": "BOT", "dead": "DEAD", "pdf": "PDF"}
         for r in res["rows"]:
-            print(f"[{r['num']:>3}] {icon[r['verdict']]} {r['status']:>3} {r['url'][:78]}")
+            print(f"[{r['num']:>3}] {icon[r['verdict']]} {r['status']:>3} {r.get('engine',''):<10} {r['url'][:66]}")
             if r["verdict"] == "dead":
                 print(f"       └ {r['error']}")
-        print(f"\n合计 {res['total']} 条：正常 {res['ok']}，反爬拦截 {res['blocked']}，死链 {res['dead']}")
+        print(f"\n合计 {res['total']} 条：正常 {res['ok']}，反爬拦截 {res['blocked']}，"
+              f"PDF 无法比对 {res['pdf']}，死链 {res['dead']}")
     return 0 if res["dead"] == 0 else 1
 
 

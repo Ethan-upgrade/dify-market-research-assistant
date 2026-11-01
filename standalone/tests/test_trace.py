@@ -68,7 +68,7 @@ class TestTables(unittest.TestCase):
 class TestCheck(unittest.TestCase):
     def test_all_verified(self):
         pages = {58.3: True}
-        with mock.patch.object(trace, "fetch_text", side_effect=lambda u, t=15: {
+        with mock.patch.object(trace, "fetch_text", side_effect=lambda u, t=15, f="auto": {
                 "ok": True, "reason": "", "text": "市场规模 58.3 亿元，增速 18.4%，装机 1,640 MWh 同比 7%"}):
             res = trace.check(REPORT)
         self.assertEqual(res["not_found"], 0)
@@ -76,21 +76,21 @@ class TestCheck(unittest.TestCase):
         self.assertEqual(res["ratio"], 1.0)
 
     def test_missing_number_flagged(self):
-        with mock.patch.object(trace, "fetch_text", side_effect=lambda u, t=15: {
+        with mock.patch.object(trace, "fetch_text", side_effect=lambda u, t=15, f="auto": {
                 "ok": True, "reason": "", "text": "市场规模 58.3 亿元"}):
             res = trace.check(REPORT)
         self.assertGreater(res["not_found"], 0)
         self.assertLess(res["ratio"], 1.0)
 
     def test_unreachable(self):
-        with mock.patch.object(trace, "fetch_text", side_effect=lambda u, t=15: {
+        with mock.patch.object(trace, "fetch_text", side_effect=lambda u, t=15, f="auto": {
                 "ok": False, "reason": "HTTP 403", "text": ""}):
             res = trace.check(REPORT)
         self.assertEqual(res["unreachable"], 3)
         self.assertEqual(res["ratio"], 0.0)
 
     def test_pdf_reason(self):
-        with mock.patch.object(trace, "fetch_text", side_effect=lambda u, t=15: {
+        with mock.patch.object(trace, "fetch_text", side_effect=lambda u, t=15, f="auto": {
                 "ok": False, "reason": "PDF 无法直接比对", "text": ""}):
             res = trace.check(REPORT)
         self.assertTrue(all("PDF" in r["reason"] for r in res["rows"]))

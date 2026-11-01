@@ -78,7 +78,7 @@ class TestCheckAggregate(unittest.TestCase):
             "https://bot.example/b": {"status": 403, "size": 0, "verdict": "blocked", "error": "HTTP 403"},
             "https://dead.example/c": {"status": 0, "size": 0, "verdict": "dead", "error": "DNS"},
         }
-        with mock.patch.object(verify, "fetch", side_effect=lambda u, t=12: verdicts[u]):
+        with mock.patch.object(verify, "fetch", side_effect=lambda u, t=12, f="auto": verdicts[u]):
             res = verify.check(REPORT)
         self.assertEqual((res["total"], res["ok"], res["blocked"], res["dead"]), (3, 1, 1, 1))
 
@@ -88,10 +88,10 @@ class TestCheckAggregate(unittest.TestCase):
             f.write(REPORT)
             path = f.name
         try:
-            with mock.patch.object(verify, "fetch", side_effect=lambda u, t=12: {
+            with mock.patch.object(verify, "fetch", side_effect=lambda u, t=12, f="auto": {
                     "status": 200, "size": 1, "verdict": "ok", "error": ""}):
                 self.assertEqual(verify.main([path]), 0)
-            with mock.patch.object(verify, "fetch", side_effect=lambda u, t=12: {
+            with mock.patch.object(verify, "fetch", side_effect=lambda u, t=12, f="auto": {
                     "status": 0, "size": 0, "verdict": "dead", "error": "boom"}):
                 self.assertEqual(verify.main([path]), 1)
         finally:
