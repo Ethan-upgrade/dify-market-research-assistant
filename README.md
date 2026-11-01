@@ -100,6 +100,7 @@ python -m mra.verify report.md --workers 8
 | 2 | [curl_cffi](https://github.com/lexiforest/curl_cffi) | 6.8k | 伪造 Chrome TLS 指纹，专治「UA 一样却 403」 |
 | 3 | [playwright](https://github.com/microsoft/playwright) | 99k | 真 Chrome 内核，跑 JS / 过简单挑战 |
 | 4 | [firecrawl](https://github.com/firecrawl/firecrawl) | 197k | 抓取服务，最重的兜底（需 Key 或自建） |
+| PDF | [PyMuPDF](https://github.com/pymupdf/PyMuPDF) / [pypdf](https://github.com/py-pdf/pypdf) | 11k / 10.3k | 券商研报 PDF 直接抽文本，不再是「无法比对」 |
 
 同一份报告（17 条来源）实测：
 
@@ -159,7 +160,7 @@ python -m mra.trace report.md --workers 8
 │  │  ├─ llm.py        # OpenAI 兼容 chat 客户端（含重试）
 │  │  ├─ pipeline.py   # 编排：需求解析 → 递归检索 → 撰写 → 引用表
 │  │  └─ cli.py        # 命令行入口
-│  └─ tests/           # 110 个用例：节点/编排/体检/整理/链接/溯源/抓取
+│  └─ tests/           # 111 个用例：节点/编排/体检/整理/链接/溯源/抓取/PDF
 ├─ docs/                                  # 部署 / 架构 / 范围口径 / 排错 / 发布
 ├─ examples/                              # 实跑报告样例
 ├─ screenshots/                           # Dify 工作流截图
@@ -237,7 +238,7 @@ python scripts\verify_published.py --base http://127.0.0.1:8080 --mode smoke
 
 ## 6. 已验证什么
 
-- `standalone/tests` **110 个用例全绿**（节点逻辑、编排、`.env`、体检、引用整理、链接体检、数字溯源、抓取引擎链、Tavily 契约）。
+- `standalone/tests` **111 个用例全绿**（节点逻辑、编排、`.env`、体检、引用整理、链接体检、数字溯源、抓取引擎链、PDF 抽取、Tavily 契约）。
 - **GitHub Actions 已跑通**（Python 3.9 / 3.11 / 3.13 三档 + DSL 结构校验），最近一次 push 为绿。
 - **仓库里的 v3 DSL 在 Dify 1.9.1 上实测**：导入 → 26 节点全部实例化 → 模型接线 → 发布成功 → smoke 验证通过（走追问分支、无控制标记泄漏）。
 - **已发布版 full 回归**：14396 字 / 8 个二级标题 / 46 条来源（42 网页 + 4 知识库片段）/ 引用率 100% / 零悬空引用 / 零自造标注。

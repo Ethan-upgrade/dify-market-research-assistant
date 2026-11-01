@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 3.7.0
+
+**PDF 也能核验了（券商研报是最大一类来源）。**
+
+之前 3 条 PDF 来源全部记「无法比对」，等于白引。接入两个高星库做文本抽取：
+
+- `mra/fetch.py::_pdf_text()`：优先 [PyMuPDF](https://github.com/pymupdf/PyMuPDF)（11k★，快），
+  退回 [pypdf](https://github.com/py-pdf/pypdf)（10.3k★，纯 Python），都没有就明说。
+- urllib / curl_cffi / playwright 三条链路都接上 PDF 分支；识别 `%PDF` 魔数，不只看扩展名
+  （`xxx.pdf?token=...` 这种 URL 之前识别不到）。
+- 扫描件识别：能打开但抽不出文字 → 报「可能是扫描件」，不冒充成功。
+- 新增 `tests/test_fetch.py` 的 PDF 用例（现 8 个），总计 **111 个**。
+
+实测同一份报告：表格论断可核验从 2/12 行提升到 9/12 行（另 1 行数字不符、2 行 403）。
+
 ## 3.6.0
 
 **抓取引擎链：403 从 6 条降到 0。**

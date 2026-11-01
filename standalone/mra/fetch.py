@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import html
+import io
 import os
 import re
 import urllib.error
@@ -35,6 +36,42 @@ def is_pdf(url: str) -> bool:
     return path.endswith(".pdf") or ".pdf" in path
 
 
+def _pdf_text(blob: bytes, max_pages: int = 40, max_chars: int = 400_000) -> dict:
+    """PDF 抽文本：优先 PyMuPDF(11k★)，退回 pypdf(10.3k★)，都没有就明说。"""
+    try:
+        import pymupdf as fitz
+    except Exception:
+        try:
+            import fitz                       # 旧包名
+        except Exception:
+            fitz = None
+    if fitz is not None:
+        try:
+            doc = fitz.open(stream=blob, filetype="pdf")
+            parts = [doc[i].get_text() for i in range(min(max_pages, doc.page_count))]
+            text = "\n".join(parts)[:max_chars]
+            doc.close()
+            if text.strip():
+                return {"ok": True, "text": text, "engine": "pymupdf", "reason": ""}
+            return {"ok": False, "text": "", "engine": "pymupdf", "reason": "PDF 无可提取文本（可能是扫描件）"}
+        except Exception as e:
+            return {"ok": False, "text": "", "engine": "pymupdf", "reason": str(e)[:60]}
+
+    try:
+        import pypdf
+    except Exception:
+        return {"ok": False, "text": "", "engine": "none", "reason": "PDF 无法比对（未安装 pymupdf/pypdf）"}
+    try:
+        reader = pypdf.PdfReader(io.BytesIO(blob))
+        parts = [pg.extract_text() or "" for pg in reader.pages[:max_pages]]
+        text = "\n".join(parts)[:max_chars]
+        if text.strip():
+            return {"ok": True, "text": text, "engine": "pypdf", "reason": ""}
+        return {"ok": False, "text": "", "engine": "pypdf", "reason": "PDF 无可提取文本（可能是扫描件）"}
+    except Exception as e:
+        return {"ok": False, "text": "", "engine": "pypdf", "reason": str(e)[:60]}
+
+
 def strip_html(raw: str) -> str:
     raw = re.sub(r"(?is)<(script|style|noscript).*?</\1>", " ", raw)
     raw = re.sub(r"(?s)<[^>]+>", " ", raw)
@@ -49,9 +86,10 @@ def _via_urllib(url: str, timeout: int) -> dict:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             raw = r.read(3_000_000)
             ctype = (r.headers.get("Content-Type") or "").lower()
-            if "pdf" in ctype or is_pdf(url):
-                return {"ok": False, "status": r.status, "text": "", "engine": "urllib",
-                        "reason": "PDF 无法直接比对"}
+            if "pdf" in ctype or is_pdf(url) or raw[:4] == b"%PDF":
+                got = _pdf_text(raw)
+                return {"ok": got["ok"], "status": r.status, "text": got["text"],
+                        "engine": got["engine"] + "(pdf)", "reason": got["reason"]}
             return {"ok": True, "status": r.status, "text": strip_html(raw.decode("utf-8", "ignore")),
                     "engine": "urllib", "reason": ""}
     except urllib.error.HTTPError as e:
@@ -69,9 +107,10 @@ def _via_curl_cffi(url: str, timeout: int) -> dict:
         r = creq.get(url, impersonate="chrome", timeout=timeout,
                      headers={"Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"})
         ctype = (r.headers.get("content-type") or "").lower()
-        if "pdf" in ctype or is_pdf(url):
-            return {"ok": False, "status": r.status_code, "text": "", "engine": "curl_cffi",
-                    "reason": "PDF 无法直接比对"}
+        if "pdf" in ctype or is_pdf(url) or (r.content or b"")[:4] == b"%PDF":
+            got = _pdf_text(r.content or b"")
+            return {"ok": got["ok"], "status": r.status_code, "text": got["text"],
+                    "engine": got["engine"] + "(pdf)", "reason": got["reason"]}
         body = r.text or ""
         if r.status_code >= 400:
             return {"ok": False, "status": r.status_code, "text": "", "engine": "curl_cffi",
@@ -94,8 +133,11 @@ def _chrome_path() -> str:
 
 def _via_playwright(url: str, timeout: int) -> dict:
     if is_pdf(url):
+        base = _via_urllib(url, timeout)
+        if base["ok"]:
+            return base
         return {"ok": False, "status": 0, "text": "", "engine": "playwright",
-                "reason": "PDF 无法直接比对"}
+                "reason": base["reason"] or "PDF 无法比对"}
     try:
         from playwright.sync_api import sync_playwright
     except Exception:

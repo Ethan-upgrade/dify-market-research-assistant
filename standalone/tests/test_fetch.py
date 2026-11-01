@@ -85,11 +85,28 @@ class TestPdf(unittest.TestCase):
         self.assertTrue(fetch.is_pdf("https://a/x.pdf?token=1"))
         self.assertFalse(fetch.is_pdf("https://a/x.html"))
 
-    def test_pdf_marked_unverifiable(self):
-        # 真实调用：PDF 分支必须在启动浏览器之前返回
-        r = fetch._via_playwright("https://a/x.pdf", 10)
-        self.assertFalse(r["ok"])
-        self.assertIn("PDF", r["reason"])
+    def test_pdf_text_extraction(self):
+        try:
+            import pymupdf
+        except Exception:
+            self.skipTest("未安装 pymupdf")
+        d = pymupdf.open()
+        pg = d.new_page()
+        pg.insert_text((72, 72), "Market size 58.3 billion CNY in 2024")
+        blob = d.tobytes()
+        d.close()
+        r = fetch._pdf_text(blob)
+        self.assertTrue(r["ok"], r["reason"])
+        self.assertIn("58.3", r["text"])
+        self.assertEqual(r["engine"], "pymupdf")
+
+    def test_pdf_playwright_delegates_to_http(self):
+        with mock.patch.object(fetch, "_via_urllib",
+                               return_value={"ok": True, "status": 200, "text": "pdf text",
+                                             "engine": "pymupdf(pdf)", "reason": ""}) as m:
+            r = fetch._via_playwright("https://a/x.pdf", 10)
+        m.assert_called_once()
+        self.assertTrue(r["ok"])
 
 
 class TestStripHtml(unittest.TestCase):
