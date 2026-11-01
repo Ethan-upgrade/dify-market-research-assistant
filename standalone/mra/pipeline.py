@@ -28,12 +28,14 @@ def _now() -> str:
 
 
 class Pipeline:
-    def __init__(self, llm, backend, scope: Scope, verbose: bool = True, normalize_citations: bool = True):
+    def __init__(self, llm, backend, scope: Scope, verbose: bool = True, normalize_citations: bool = True,
+                 max_chars: int = 14000):
         self.llm = llm
         self.backend = backend
         self.scope = scope
         self.verbose = verbose
         self.normalize_citations = normalize_citations
+        self.max_chars = max_chars
         self._t0 = time.time()
 
     def log(self, msg: str) -> None:
@@ -111,6 +113,7 @@ class Pipeline:
                                 src["unused"], src["n_sources"], src["n_kb"]),
             temperature=0.7, max_tokens=16384,
         )
+        body = self._maybe_compress(body, query)
         if getattr(self, "normalize_citations", True):
             if self._citation_hygiene_ok(body):
                 self.log("⑫ᵃ 引用密度已达标，跳过降噪（省一次模型调用）")
@@ -149,6 +152,36 @@ class Pipeline:
                   "tokens": self.llm.tokens, "检索次数": getattr(self.backend, "calls", 0)},
         )
 
+
+
+    def _maybe_compress(self, body: str, query: str) -> str:
+        """超过 max_chars 就压一次。压缩必须保住章节与全部引用编号，否则回退原文。"""
+        limit = int(getattr(self, "max_chars", 0) or 0)
+        if limit <= 0 or len(body) <= limit:
+            return body
+        import re as _re
+        before_nums = set(_re.findall(r"\[(?:\d+|K\d+)\]", body))
+        self.log(f"⑫ᵃ¹ 篇幅 {len(body)} > {limit}，压缩一次")
+        try:
+            packed = self.llm.chat(
+                prompts.COMPRESS,
+                f"目标篇幅：{limit} 字以内（现在是 {len(body)} 字）。\n\n" + body,
+                temperature=0.2, max_tokens=16384,
+            )
+        except Exception as e:
+            self.log(f"⑫ᵃ¹ 压缩失败，保留原稿：{e}")
+            return body
+        # 一次调用很难精准压到目标值：允许 15% 超调，或至少压缩 10%
+        too_long = len(packed) > limit * 1.15 and len(packed) > len(body) * 0.90
+        if "## " not in packed or too_long:
+            self.log(f"⑫ᵃ¹ 压缩结果不合规（{len(packed)} 字），保留原稿")
+            return body
+        lost = before_nums - set(_re.findall(r"\[(?:\d+|K\d+)\]", packed))
+        if lost:
+            self.log(f"⑫ᵃ¹ 压缩丢了引用编号 {sorted(lost)[:6]}，保留原稿")
+            return body
+        self.log(f"⑫ᵃ¹ 压缩完成：{len(body)} → {len(packed)} 字")
+        return packed
 
     @staticmethod
     def _citation_hygiene_ok(body: str) -> bool:

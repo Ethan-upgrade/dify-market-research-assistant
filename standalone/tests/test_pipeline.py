@@ -231,5 +231,38 @@ class TestHygienePredicate(unittest.TestCase):
         self.assertLess(time.time() - t0, 0.22)
 
 
+class TestCompression(unittest.TestCase):
+    """超长报告压缩：保住章节与引用，否则回退原稿。"""
+
+    def _pipe(self, reply, max_chars=200):
+        llm = StubLLM([reply])
+        return Pipeline(llm, StubBackend(), Scope(), verbose=False, max_chars=max_chars), llm
+
+    def test_skips_when_short(self):
+        pipe, llm = self._pipe("不会用到", max_chars=99999)
+        body = "## 一、x\n短正文"
+        self.assertEqual(pipe._maybe_compress(body, "q"), body)
+        self.assertEqual(llm.calls, 0)
+
+    def test_accepts_valid_compression(self):
+        original = "## 一、执行摘要\n" + "内容[1]。" * 100 + "\n## 二、市场\n[2]\n"
+        packed = "## 一、执行摘要\n" + "内容[1]。" * 20 + "\n## 二、市场\n[2]\n"
+        pipe, _ = self._pipe(packed, max_chars=len(original) - 10)
+        out = pipe._maybe_compress(original, "q")
+        self.assertEqual(out, packed)
+
+    def test_rejects_when_citation_lost(self):
+        original = "## 一、执行摘要\n" + "内容[1]。" * 100 + "\n## 二、市场\n[2]\n"
+        packed = "## 一、执行摘要\n" + "内容[1]。" * 20 + "\n## 二、市场\n"
+        pipe, _ = self._pipe(packed, max_chars=len(original) - 10)
+        self.assertEqual(pipe._maybe_compress(original, "q"), original)
+
+    def test_rejects_when_still_too_long(self):
+        original = "## 一、执行摘要\n" + "内容[1]。" * 100
+        packed = "## 一、执行摘要\n" + "内容[1]。" * 100
+        pipe, _ = self._pipe(packed, max_chars=100)
+        self.assertEqual(pipe._maybe_compress(original, "q"), original)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

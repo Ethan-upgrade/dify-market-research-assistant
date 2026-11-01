@@ -40,6 +40,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--base-url", default=None, help="OpenAI 兼容 base_url，覆盖 MRA_BASE_URL")
     p.add_argument("-o", "--out", default=None, help="报告输出路径（默认打印到 stdout）")
     p.add_argument("--json", action="store_true", help="额外输出一行 JSON 元数据到 stderr")
+    p.add_argument("--max-chars", dest="max_chars", type=int, default=0,
+                   help="超过该字数自动压缩一次（默认 0=关闭；建议 12000）")
     p.add_argument("--no-normalize", dest="no_normalize", action="store_true",
                    help="跳过引用降噪（默认会再调一次模型合并重复标注）")
     p.add_argument("--verify-links", dest="verify_links", action="store_true",
@@ -99,7 +101,8 @@ def main(argv=None) -> int:
         return 2
 
     pipe = Pipeline(llm, backend, scope, verbose=not args.quiet,
-                    normalize_citations=not getattr(args, "no_normalize", False))
+                    normalize_citations=not getattr(args, "no_normalize", False),
+                    max_chars=getattr(args, "max_chars", 0))
     try:
         report = pipe.run(query)
     except (LLMError, SearchError) as e:
