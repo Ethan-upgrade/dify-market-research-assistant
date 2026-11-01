@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 3.9.0
+
+**服务化：把体检能力暴露成 HTTP，补上 Dify 侧的最后一环。**
+
+之前 3.3~3.7 的能力（引用整理、链接体检、数字溯源、PDF）都只在 CLI 里，Dify 网页版用不上。
+现在起一个本地服务即可：
+
+- 新增 `mra/serve.py`（纯标准库 `http.server`，无新依赖）：`GET /health`、`POST /check`、`POST /verify`。
+- 可选 `MRA_TOKEN` 做 Bearer 认证；请求体上限 8MB；异常兜底不挂服务。
+- Dify 接法：Answer 前加 HTTP Request 节点 → 返回 ok 走条件分支，不合格转人工。
+- 新增 `tests/test_serve.py`（5 个用例，真起服务走 HTTP），总计 **122 个**。
+
 ## 3.8.0
 
 **速度优化：同一份报告 280s → 165s（-41%），质量不变。**

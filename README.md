@@ -133,6 +133,22 @@ python -m mra.trace report.md --workers 8
 **它不做真假判决**，只把「页面上找不到的数字」挑出来，把人工复核从 32 行缩到 10 行。
 正文句子级比对试过，误报率太高（模型自己算的同比、四舍五入都会被判错），所以只保留表格。
 
+### 服务化：给 Dify / 飞书 / 其他系统调用（3.9）
+
+```powershell
+python -m mra.serve --port 8765        # 设了 MRA_TOKEN 就要求 Bearer 认证
+```
+
+| 接口 | 作用 |
+|---|---|
+| `GET /health` | 存活 + 版本 |
+| `POST /check` `{"markdown": "..."}` | 跑报告体检，返回 ok/problems/metrics |
+| `POST /verify` `{"markdown": "...", "links": true, "trace": false}` | 体检 + 链接 + 数字溯源 |
+
+Dify 里怎么接：在 Answer 节点**之前**插一个 HTTP Request 节点，POST 到
+`http://host.docker.internal:8765/check`，body 用上一步的报告文本；用返回的 `ok` 走条件分支——
+不合格就转人工，不直接吐给用户。容器里 `127.0.0.1` 指向容器自己，必须用 `host.docker.internal`。
+
 | 方式 | 命令 | 场景 |
 |---|---|---|
 | 命令行 | `python -m mra "调研 XX 市场" --depth 3 -o r.md` | 随手问 |
@@ -160,7 +176,7 @@ python -m mra.trace report.md --workers 8
 │  │  ├─ llm.py        # OpenAI 兼容 chat 客户端（含重试）
 │  │  ├─ pipeline.py   # 编排：需求解析 → 递归检索 → 撰写 → 引用表
 │  │  └─ cli.py        # 命令行入口
-│  └─ tests/           # 117 个用例：节点/编排/体检/整理/链接/溯源/抓取/PDF
+│  └─ tests/           # 122 个用例：节点/编排/体检/整理/链接/溯源/抓取/PDF/服务
 ├─ docs/                                  # 部署 / 架构 / 范围口径 / 排错 / 发布
 ├─ examples/                              # 实跑报告样例
 ├─ screenshots/                           # Dify 工作流截图
@@ -238,7 +254,7 @@ python scripts\verify_published.py --base http://127.0.0.1:8080 --mode smoke
 
 ## 6. 已验证什么
 
-- `standalone/tests` **117 个用例全绿**（节点逻辑、编排、`.env`、体检、引用整理、链接体检、数字溯源、抓取引擎链、PDF 抽取、Tavily 契约）。
+- `standalone/tests` **122 个用例全绿**（节点逻辑、编排、`.env`、体检、引用整理、链接体检、数字溯源、抓取引擎链、PDF 抽取、HTTP 服务、Tavily 契约）。
 - **GitHub Actions 已跑通**（Python 3.9 / 3.11 / 3.13 三档 + DSL 结构校验），最近一次 push 为绿。
 - **仓库里的 v3 DSL 在 Dify 1.9.1 上实测**：导入 → 26 节点全部实例化 → 模型接线 → 发布成功 → smoke 验证通过（走追问分支、无控制标记泄漏）。
 - **已发布版 full 回归**：14396 字 / 8 个二级标题 / 46 条来源（42 网页 + 4 知识库片段）/ 引用率 100% / 零悬空引用 / 零自造标注。
