@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 3.12.0
+
+**常驻自启：`mra.serve` 不用再手动起。**
+
+- 新增 `tools/install-serve-task.ps1`：注册登录自启的 Windows 计划任务，失败每分钟重启，日志到 `logs/serve.log`。
+- `mra.serve` 端口被占用时给出明确提示并以 1 退出，不再抛 traceback。
+- 本机实测：注册 → 启动 → `/health` 返回 `{"ok": true, "version": "3.12.0"}` → 删除，端口释放。
+- 用例仍为 **128 个**（该脚本由 CI 的 PowerShell 语法检查覆盖）。
+
 ## 3.11.0
 
 **抓取缓存：反复体检不再重抓同一批 URL。**

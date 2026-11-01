@@ -8,6 +8,7 @@ import os
 import sys
 import threading
 import unittest
+import urllib.error
 import urllib.request
 from http.server import ThreadingHTTPServer
 

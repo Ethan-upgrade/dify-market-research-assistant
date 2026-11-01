@@ -164,6 +164,17 @@ GET /jobs/a1b2c3
 **抓取缓存（3.11）**：`verify` / `trace` 抓过的页面默认缓存 24 小时（`.cache/fetch/`，按 URL 哈希存）。
 同一份报告反复体检不必重抓：实测单页 3.07s → 0.00s。`MRA_FETCH_TTL=0` 关闭。
 
+**常驻自启（3.12）**：不想每次手动起服务，注册成登录自启的计划任务：
+
+```powershell
+tools\install-serve-task.ps1                 # 登录后 20s 启动，端口 8765
+tools\install-serve-task.ps1 -Port 9000 -Token mytoken
+tools\install-serve-task.ps1 -Remove         # 撤销
+```
+
+失败每分钟自动重启（`RestartCount 999`），日志写 `logs\serve.log`。本机实测：注册 → `Start-ScheduledTask` →
+`curl /health` 返回 `{"ok": true, "version": "3.12.0"}` → 删除任务、端口释放。
+
 | 方式 | 命令 | 场景 |
 |---|---|---|
 | 命令行 | `python -m mra "调研 XX 市场" --depth 3 -o r.md` | 随手问 |

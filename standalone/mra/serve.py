@@ -212,15 +212,17 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = self.path.rstrip("/")
-        if not self._auth_ok():
-            self._send(401, {"ok": False, "error": "unauthorized"})
-            return
+        # 先读完请求体再判权限：否则客户端还在发 body，连接被提前关闭会变成 RemoteDisconnected
         length = int(self.headers.get("Content-Length") or 0)
         if length <= 0 or length > MAX_BODY:
             self._send(400, {"ok": False, "error": "body 为空或过大"})
             return
+        raw = self.rfile.read(length)
+        if not self._auth_ok():
+            self._send(401, {"ok": False, "error": "unauthorized"})
+            return
         try:
-            data = json.loads(self.rfile.read(length).decode("utf-8"))
+            data = json.loads(raw.decode("utf-8"))
         except Exception as e:
             self._send(400, {"ok": False, "error": "JSON 解析失败: %s" % e})
             return
@@ -253,7 +255,11 @@ def main(argv=None) -> int:
     ap.add_argument("--port", type=int, default=8765)
     args = ap.parse_args(argv)
 
-    httpd = ThreadingHTTPServer((args.host, args.port), Handler)
+    try:
+        httpd = ThreadingHTTPServer((args.host, args.port), Handler)
+    except OSError as e:
+        print(f"端口 {args.port} 起不来：{e}（可能已被占用，换 --port 或先停掉旧进程）", file=sys.stderr)
+        return 1
     print(f"mra {__version__} serving on http://{args.host}:{args.port}  (Ctrl+C 退出)", flush=True)
     try:
         httpd.serve_forever()
