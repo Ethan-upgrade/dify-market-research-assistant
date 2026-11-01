@@ -100,9 +100,9 @@ def check_report(markdown: str, min_chars: int = 3000,
         problems.append(f"同一来源在一段内重复标注过多：{', '.join(spam[:5])}")
 
     # 连续三连标注 [a][b][c]（4 个及以上）通常是刷标
-    runs = re.findall(r"(?:\[\d+\]){4,}", p["body"])
+    runs = re.findall(r"(?:\[\d+\]){5,}", p["body"])   # 5 连写才算刷标，4 个可能是合理并列
     if runs:
-        problems.append(f"存在连续 4 个以上引用标注（{len(runs)} 处，如 {runs[0][:40]}）")
+        problems.append(f"存在连续 5 个以上引用标注（{len(runs)} 处，如 {runs[0][:40]}）")
 
     # 表格里有「来源」列却整列空白 → 数字全裸，无出处
     blank_src_rows = count_blank_source_rows(p["body"])

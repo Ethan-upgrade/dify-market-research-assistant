@@ -26,6 +26,7 @@ jobs:
           python tests/test_config.py
           python tests/test_checks.py
           python tests/test_citation_hygiene.py
+          python tests/test_tidy.py
           python tests/test_search.py
 
       - name: CLI 冒烟（离线 fixture，不联网、不调模型）

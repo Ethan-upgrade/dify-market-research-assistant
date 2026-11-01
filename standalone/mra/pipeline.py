@@ -6,7 +6,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from . import nodes, prompts
+from . import nodes, prompts, tidy
 from .config import Scope
 
 
@@ -149,27 +149,28 @@ class Pipeline:
                 temperature=0.0, max_tokens=16384,
             )
         except Exception as e:                      # 降噪失败不能影响主流程
-            self.log(f"⑫ᵃ 引用降噪失败，保留原文：{e}")
-            return body
+            self.log(f"⑫ᵃ 引用降噪失败，改走确定性整理：{e}")
+            return tidy.tidy(body)
         # 防御①：结构必须还在（章节、长度不许缩水 40% 以上）
         if "## " not in cleaned or len(cleaned) < len(body) * 0.6:
-            self.log("⑫ᵃ 引用降噪结果异常，保留原文")
-            return body
+            self.log("⑫ᵃ 引用降噪结果异常，改走确定性整理")
+            return tidy.tidy(body)
 
         # 防御②：优先看「表格来源列是否还有出处」，比长度更硬的指标
         from .checks import count_blank_source_rows
         blank_before, blank_after = count_blank_source_rows(body), count_blank_source_rows(cleaned)
         if blank_after > blank_before:
-            self.log(f"⑫ᵃ 降噪把表格来源列削空了（{blank_before} → {blank_after}），保留原文")
-            return body
+            self.log(f"⑫ᵃ 降噪把表格来源列削空了（{blank_before} → {blank_after}），改走确定性整理")
+            return tidy.tidy(body)
 
         # 防御③：来源编号不许丢太多（丢了就是伪造出处）
         from .checks import parse_report
         lost = set(parse_report(body)["cited_web"]) - set(parse_report(cleaned)["cited_web"])
         if len(lost) > max(2, len(parse_report(body)["cited_web"]) // 3):
-            self.log(f"⑫ᵃ 降噪丢了来源编号 {sorted(lost)}，保留原文")
-            return body
+            self.log(f"⑫ᵃ 降噪丢了来源编号 {sorted(lost)}，改走确定性整理")
+            return tidy.tidy(body)
 
+        cleaned = tidy.tidy(cleaned)
         after = cleaned.count("[")
         self.log(f"⑫ᵃ 引用降噪：[{before} → {after} 处标注")
         return cleaned
