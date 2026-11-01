@@ -18,9 +18,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import html
 import io
+import json
 import os
+import time
 import re
 import urllib.error
 import urllib.request
@@ -197,8 +200,47 @@ _ENGINES = {
 AUTO_CHAIN = ["urllib", "curl_cffi", "playwright", "firecrawl"]
 
 
-def fetch_text(url: str, timeout: int = 15, fetcher: str = "auto") -> dict:
-    """按 fetcher 策略取页面纯文本。auto = 依次降级，拿到就停。"""
+def _cache_dir() -> str:
+    d = os.environ.get("MRA_CACHE_DIR", os.path.join(os.getcwd(), ".cache", "fetch"))
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def _cache_get(url: str, ttl: int) -> dict | None:
+    if ttl <= 0:
+        return None
+    path = os.path.join(_cache_dir(), hashlib.sha1(url.encode()).hexdigest() + ".json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            d = json.load(f)
+        if time.time() - d.get("ts", 0) <= ttl:
+            return d["result"]
+    except Exception:
+        pass
+    return None
+
+
+def _cache_put(url: str, result: dict) -> None:
+    try:
+        path = os.path.join(_cache_dir(), hashlib.sha1(url.encode()).hexdigest() + ".json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"url": url, "ts": time.time(), "result": result}, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def fetch_text(url: str, timeout: int = 15, fetcher: str = "auto", use_cache: bool = True) -> dict:
+    """按 fetcher 策略取页面纯文本。auto = 依次降级，拿到就停。
+
+    带磁盘缓存（默认 24h，MRA_FETCH_TTL 可调，0 关闭）：同一份报告反复体检时不必重抓。
+    """
+    ttl = int(os.environ.get("MRA_FETCH_TTL", "86400"))
+    if use_cache:
+        hit = _cache_get(url, ttl)
+        if hit:
+            hit = dict(hit)
+            hit["engine"] = hit.get("engine", "") + "(cache)"
+            return hit
     chain = AUTO_CHAIN if fetcher in ("auto", "", None) else [fetcher]
     results = []
     for name in chain:
@@ -208,6 +250,8 @@ def fetch_text(url: str, timeout: int = 15, fetcher: str = "auto") -> dict:
         r = fn(url, timeout)
         r["engine"] = name
         if r["ok"]:
+            if use_cache:
+                _cache_put(url, r)
             return r
         results.append(r)
         # 明确的「页面不存在」不用再换引擎折腾
@@ -220,6 +264,8 @@ def fetch_text(url: str, timeout: int = 15, fetcher: str = "auto") -> dict:
     # 归因优先：被反爬（403/412…）比「未安装/未配置」更能解释失败
     for r in results:
         if r["status"] in BLOCK_CODES:
+            if use_cache:
+                _cache_put(url, r)
             return r
     for r in results:
         if r["status"] in (404, 410):

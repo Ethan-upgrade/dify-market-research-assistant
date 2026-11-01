@@ -20,6 +20,9 @@ dist/
 node_modules/
 .pnpm-store/
 
+# ---- 缓存 ----
+.cache/
+
 # ---- 产物 ----
 out/
 reports/

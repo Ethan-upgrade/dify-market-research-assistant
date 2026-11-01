@@ -118,5 +118,50 @@ class TestStripHtml(unittest.TestCase):
         self.assertNotIn("var a", txt)
 
 
+class TestCache(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        self.tmp = tempfile.mkdtemp()
+        self._old = {k: os.environ.get(k) for k in ("MRA_CACHE_DIR", "MRA_FETCH_TTL")}
+        os.environ["MRA_CACHE_DIR"] = self.tmp
+        os.environ["MRA_FETCH_TTL"] = "3600"
+
+    def tearDown(self):
+        for k, v in self._old.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    def test_second_call_hits_cache(self):
+        calls = []
+
+        def fake(u, t):
+            calls.append(u)
+            return ok()
+
+        with mock.patch.dict(fetch._ENGINES, {"urllib": fake}, clear=True), \
+             mock.patch.object(fetch, "AUTO_CHAIN", ["urllib"]):
+            r1 = fetch.fetch_text("https://x/cache-1")
+            r2 = fetch.fetch_text("https://x/cache-1")
+        self.assertEqual(len(calls), 1)
+        self.assertNotIn("cache", r1["engine"])
+        self.assertIn("cache", r2["engine"])
+
+    def test_ttl_zero_disables(self):
+        calls = []
+
+        def fake(u, t):
+            calls.append(u)
+            return ok()
+
+        os.environ["MRA_FETCH_TTL"] = "0"
+        with mock.patch.dict(fetch._ENGINES, {"urllib": fake}, clear=True), \
+             mock.patch.object(fetch, "AUTO_CHAIN", ["urllib"]):
+            fetch.fetch_text("https://x/cache-2")
+            fetch.fetch_text("https://x/cache-2")
+        self.assertEqual(len(calls), 2)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
