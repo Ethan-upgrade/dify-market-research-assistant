@@ -70,3 +70,41 @@ def strip_table_cell_citations(text: str) -> str:
 def tidy(markdown: str, max_run: int = 2) -> str:
     """体检前/降噪后的机械整理：先清表格、再合并连写。"""
     return collapse_citation_runs(strip_table_cell_citations(markdown), keep=max_run)
+
+def renumber_citations(body: str, source_list: str) -> tuple:
+    """把来源表编号压成连续的 1..N，并同步改正文里的引用。
+
+    为什么需要：写作时引用了 [1][3][18]，没用到的编号会被剔掉，来源表就跳号
+    （11 直接到 13）。读者会以为漏了。这里按首次出现顺序重排，正文和来源表一起改，
+    保证「表里第 3 条 = 正文 [3]」且没有空号。
+
+    返回 (new_body, new_source_list)。
+    """
+    rows = []
+    for ln in (source_list or "").split("\n"):
+        m = re.match(r"^(K?\d+)\.\s+(.*)$", ln.strip())
+        if m:
+            rows.append((m.group(1), m.group(2)))
+
+    nums = [n for n, _ in rows if not n.startswith("K")]
+    if not nums:
+        return body, source_list
+
+    order = sorted(nums, key=lambda x: int(x))
+    mapping = {old: str(i + 1) for i, old in enumerate(order)}
+
+    def sub(m):
+        token = m.group(1)
+        return "[" + mapping.get(token, token) + "]"
+
+    new_body = re.sub(r"\[(\d+)\]", sub, body)
+
+    new_rows = []
+    for old, rest in rows:
+        if old.startswith("K"):
+            new_rows.append(f"{old}. {rest}")
+        else:
+            new_rows.append(f"{mapping.get(old, old)}. {rest}")
+    new_rows.sort(key=lambda r: (0, int(r.split(".")[0][1:])) if r.startswith("K")
+                  else (1, int(r.split(".")[0])))
+    return new_body, "\n".join(new_rows)

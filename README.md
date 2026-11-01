@@ -75,6 +75,25 @@ python -m mra --search fixture --fixture tests/fixtures/corpus.json `
 **引用密度（>每百字 6 处）**、**一段内同一来源 >5 次**、**表格「来源」列空白**、**连续 4 个以上标注**。
 不合格会逐条列出问题、退出码 1，但**报告保留**供人工复核。`--no-check` 关体检，`--no-normalize` 关降噪。
 
+### 来源可核验（3.4 新增）
+
+报告内部自洽 ≠ 来源能打开。加 `--verify-links` 会逐条抓取来源 URL：
+
+```powershell
+python -m mra "调研 XX 市场" --depth 2 --verify-links -o report.md
+# 或对已有报告单独体检
+python -m mra.verify report.md --workers 8
+```
+
+```
+🔗 链接体检：15 条 → 正常 12，反爬 2，死链 1
+   ✗ [4] https://www.iimedia.cn/c400/106703.html —— The read operation timed out
+```
+
+判定分三档：`OK`（2xx）、`BOT`（403/412 反爬，不算死链）、`DEAD`（404/DNS/超时，退出码 1）。
+同时报告会自动做**编号连续化**（剔掉未引用来源后重排为 1..N，避免「11 直接跳 13」），
+并把「Tavily 引擎摘要」单独列出、**不计入来源数**（它不是原始出处）。
+
 | 方式 | 命令 | 场景 |
 |---|---|---|
 | 命令行 | `python -m mra "调研 XX 市场" --depth 3 -o r.md` | 随手问 |
@@ -102,7 +121,7 @@ python -m mra --search fixture --fixture tests/fixtures/corpus.json `
 │  │  ├─ llm.py        # OpenAI 兼容 chat 客户端（含重试）
 │  │  ├─ pipeline.py   # 编排：需求解析 → 递归检索 → 撰写 → 引用表
 │  │  └─ cli.py        # 命令行入口
-│  └─ tests/           # 77 个用例：节点/编排/契约/体检/引用整理
+│  └─ tests/           # 90 个用例：节点/编排/契约/体检/整理/链接
 ├─ docs/                                  # 部署 / 架构 / 范围口径 / 排错 / 发布
 ├─ examples/                              # 实跑报告样例
 ├─ screenshots/                           # Dify 工作流截图
@@ -180,7 +199,7 @@ python scripts\verify_published.py --base http://127.0.0.1:8080 --mode smoke
 
 ## 6. 已验证什么
 
-- `standalone/tests` **77 个用例全绿**（节点逻辑、编排链路、`.env` 加载、报告体检、引用降噪防御、确定性整理、Tavily 契约、离线回放）。
+- `standalone/tests` **90 个用例全绿**（节点逻辑、编排链路、`.env` 加载、报告体检、引用整理、链接体检、Tavily 契约、离线回放）。
 - **GitHub Actions 已跑通**（Python 3.9 / 3.11 / 3.13 三档 + DSL 结构校验），最近一次 push 为绿。
 - **仓库里的 v3 DSL 在 Dify 1.9.1 上实测**：导入 → 26 节点全部实例化 → 模型接线 → 发布成功 → smoke 验证通过（走追问分支、无控制标记泄漏）。
 - **已发布版 full 回归**：14396 字 / 8 个二级标题 / 46 条来源（42 网页 + 4 知识库片段）/ 引用率 100% / 零悬空引用 / 零自造标注。

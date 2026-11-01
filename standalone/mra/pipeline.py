@@ -110,6 +110,9 @@ class Pipeline:
         if getattr(self, "normalize_citations", True):
             body = self._normalize_citations(body)
         cited = nodes.build_cited_table(body, src["source_list"])
+        # 编号连续化：剔掉未引用来源后，正文与来源表一起重排成 1..N
+        cited["body"], cited["cited_list"] = tidy.renumber_citations(
+            cited["body"], cited["cited_list"])
         self.log(f"⑫ᵇ 正文引用 {cited['n_cited']} 条来源，剔除未引用 {cited['dropped']} 条")
         return {"body": cited["body"], "cited_list": cited["cited_list"],
                 "n_cited": cited["n_cited"], "n_sources": src["n_sources"]}

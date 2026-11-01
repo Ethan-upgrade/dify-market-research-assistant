@@ -21,7 +21,15 @@ def parse_report(markdown: str) -> dict:
     if not sep:                      # 没有来源表，整篇当正文
         body, src = text, ""
 
-    web = [int(x) for x in re.findall(r"^(\d+)\. ", src, re.M)]
+    web_all = [int(x) for x in re.findall(r"^(\d+)\. ", src, re.M)]
+    # 「Tavily 引擎摘要」是搜索引擎生成的，不是原始来源，单独计数
+    engine = set()
+    for ln in src.split("\n"):
+        if "Tavily 引擎摘要" in ln or "Tavily answer" in ln:
+            mm = re.match(r"^(\d+)\. ", ln.strip())
+            if mm:
+                engine.add(int(mm.group(1)))
+    web = [n for n in web_all if n not in engine]
     kb = [int(x) for x in re.findall(r"^K(\d+)\. ", src, re.M)]
     cited_web = {int(x) for x in re.findall(r"\[(\d+)\]", body)}
     cited_kb = {int(x) for x in re.findall(r"\[K(\d+)\]", body)}
@@ -34,6 +42,8 @@ def parse_report(markdown: str) -> dict:
         "body": body,
         "source_block": src,
         "web": web,
+        "web_all": web_all,
+        "engine": sorted(engine),
         "kb": kb,
         "cited_web": cited_web,
         "cited_kb": cited_kb,
@@ -64,7 +74,8 @@ def check_report(markdown: str, min_chars: int = 3000,
     if len(p["chapters"]) < min_chapters:
         problems.append(f"章节不足（{len(p['chapters'])} < {min_chapters}）")
 
-    dangling = sorted(n for n in p["cited_web"] if n not in set(p["web"]))
+    valid_nums = set(p["web"]) | set(p.get("engine") or [])
+    dangling = sorted(n for n in p["cited_web"] if n not in valid_nums)
     dangling_kb = sorted(k for k in p["cited_kb"] if k not in set(p["kb"]))
     if dangling or dangling_kb:
         problems.append(f"悬空引用 web={dangling} kb={dangling_kb}")
@@ -90,7 +101,9 @@ def check_report(markdown: str, min_chars: int = 3000,
     # 同一编号在一段里反复出现
     spam = []
     for para in re.split(r"\n\s*\n", p["body"]):
-        marks = re.findall(r"\[(\d+|K\d+)\]", para)
+        # 表格行不算「段落」：来源列每行都会重复同一编号，属于正常
+        prose = "\n".join(ln for ln in para.split("\n") if not ln.strip().startswith("|"))
+        marks = re.findall(r"\[(\d+|K\d+)\]", prose)
         if not marks:
             continue
         top = max(set(marks), key=marks.count)
@@ -116,6 +129,7 @@ def check_report(markdown: str, min_chars: int = 3000,
             "chars": p["chars"],
             "chapters": len(p["chapters"]),
             "web": total_web,
+            "engine": len(p.get("engine") or []),
             "kb": len(p["kb"]),
             "cited": used,
             "ratio": round(ratio, 4),

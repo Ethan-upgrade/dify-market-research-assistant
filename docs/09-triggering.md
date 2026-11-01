@@ -39,6 +39,7 @@ tools\run-report.cmd
 
 ```powershell
 tools\run-report.cmd -Topic "调研胶囊咖啡在中国市场的竞争格局" -Market 中国大陆 -Depth 2
+tools\run-report.ps1 -Topic "..." -VerifyLinks   # 顺带查来源死链
 ```
 
 **放到桌面**（一条命令，以后双击图标就行）：

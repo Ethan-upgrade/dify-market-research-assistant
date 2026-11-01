@@ -42,6 +42,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true", help="额外输出一行 JSON 元数据到 stderr")
     p.add_argument("--no-normalize", dest="no_normalize", action="store_true",
                    help="跳过引用降噪（默认会再调一次模型合并重复标注）")
+    p.add_argument("--verify-links", dest="verify_links", action="store_true",
+                   help="出报告后逐条抓取来源链接，报告死链（较慢，约 10 秒）")
     p.add_argument("--no-check", dest="no_check", action="store_true",
                    help="跳过报告自检（悬空引用/来源利用率/章节数/篇幅）")
     p.add_argument("--min-chars", dest="min_chars", type=int, default=3000, help="自检：报告最少字数")
@@ -129,6 +131,16 @@ def main(argv=None) -> int:
                   f" / 标注 {m['marks']} 处（每百字 {m['density']}）"
                   + (f" / 知识库 {m['kb']} 条" if m["kb"] else ""), file=sys.stderr)
 
+    links = None
+    if getattr(args, "verify_links", False) and not report.unclear:
+        from .verify import check as check_links
+        links = check_links(report.markdown)
+        print(f"\n🔗 链接体检：{links['total']} 条 → 正常 {links['ok']}，"
+              f"反爬 {links['blocked']}，死链 {links['dead']}", file=sys.stderr)
+        for r in links["rows"]:
+            if r["verdict"] == "dead":
+                print(f"   ✗ [{r['num']}] {r['url']} —— {r['error']}", file=sys.stderr)
+
     if args.json:
         import json
         meta = {
@@ -139,11 +151,15 @@ def main(argv=None) -> int:
         }
         if check is not None:
             meta["check"] = check
+        if links is not None:
+            meta["links"] = {k: links[k] for k in ("total", "ok", "blocked", "dead")}
         print(json.dumps(meta, ensure_ascii=False), file=sys.stderr)
 
     if report.unclear:
         return 3
     if check is not None and not check["ok"]:
+        return 1
+    if links is not None and links["dead"] > 0:
         return 1
     return 0
 

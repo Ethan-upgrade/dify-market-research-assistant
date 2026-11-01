@@ -15,6 +15,7 @@ param(
     [string]$Source = "不限",
     [ValidateSet("2", "3", "4")][string]$Depth = "3",
     [switch]$Offline,
+    [switch]$VerifyLinks,
     [switch]$NoOpen
 )
 
@@ -47,6 +48,7 @@ $cliArgs = @("-m", "mra", $Topic, "--market", $Market, "--industry", $Industry,
 if ($Offline) {
     $cliArgs += @("--search", "fixture", "--fixture", (Join-Path $standalone "tests\fixtures\corpus.json"))
 }
+if ($VerifyLinks) { $cliArgs += @("--verify-links") }
 
 Write-Host ""
 Write-Host "主题 : $Topic"

@@ -296,7 +296,10 @@ def build_cited_table(text: str, source_list: str) -> dict:
     picked_k = [c for c in order if c.startswith("K") and c in rows]
     picked_n = sorted([c for c in order if not c.startswith("K") and c in rows],
                       key=lambda x: int(x))
-    final = picked_k + picked_n
+    # 真实来源在前，搜索引擎摘要垫底（它不是原始出处）
+    real = [c for c in picked_n if "Tavily 引擎摘要" not in rows[c]]
+    engine = [c for c in picked_n if "Tavily 引擎摘要" in rows[c]]
+    final = picked_k + real + engine
 
     lines = [rows[c] for c in final]
     cited_list = "\n".join(lines) if lines else "（正文没有引用任何来源）"

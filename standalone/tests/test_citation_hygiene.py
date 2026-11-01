@@ -142,3 +142,16 @@ class TestNormalizeGuard(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+class TestTableNotParagraph(unittest.TestCase):
+    """表格的「来源」列每行重复同一编号，不能被判成「一段内重复标注过多」。"""
+
+    def test_table_column_not_flagged(self):
+        rows = "\n".join(f"| 指标{i} | {i} 亿元 | [7] |" for i in range(12))
+        doc = ("## 一、规模\n\n| 指标 | 数值 | 来源 |\n|---|---|---|\n" + rows +
+               "\n\n## 二、格局\n[7]\n\n## 三、用户\n[7]\n\n## 四、趋势\n[7]\n\n"
+               "## 五、风险\n[7]\n\n## 六、结论\n[7]\n\n## 七、建议\n[7]\n\n"
+               "## 参考来源\n\n7. 来源 — https://a/7\n" + ("填充。" * 1200))
+        r = check_report(doc, max_same_in_paragraph=5)
+        self.assertNotIn("重复标注过多", " ".join(r["problems"]))
+
