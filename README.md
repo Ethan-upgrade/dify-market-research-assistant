@@ -121,7 +121,7 @@ python -m mra.verify report.md --workers 8
 │  │  ├─ llm.py        # OpenAI 兼容 chat 客户端（含重试）
 │  │  ├─ pipeline.py   # 编排：需求解析 → 递归检索 → 撰写 → 引用表
 │  │  └─ cli.py        # 命令行入口
-│  └─ tests/           # 91 个用例：节点/编排/契约/体检/整理/链接
+│  └─ tests/           # 92 个用例：节点/编排/契约/体检/整理/链接
 ├─ docs/                                  # 部署 / 架构 / 范围口径 / 排错 / 发布
 ├─ examples/                              # 实跑报告样例
 ├─ screenshots/                           # Dify 工作流截图
@@ -199,7 +199,7 @@ python scripts\verify_published.py --base http://127.0.0.1:8080 --mode smoke
 
 ## 6. 已验证什么
 
-- `standalone/tests` **91 个用例全绿**（节点逻辑、编排链路、`.env` 加载、报告体检、引用整理、链接体检、Tavily 契约、离线回放）。
+- `standalone/tests` **92 个用例全绿**（节点逻辑、编排链路、`.env` 加载、报告体检、引用整理、链接体检、Tavily 契约、离线回放）。
 - **GitHub Actions 已跑通**（Python 3.9 / 3.11 / 3.13 三档 + DSL 结构校验），最近一次 push 为绿。
 - **仓库里的 v3 DSL 在 Dify 1.9.1 上实测**：导入 → 26 节点全部实例化 → 模型接线 → 发布成功 → smoke 验证通过（走追问分支、无控制标记泄漏）。
 - **已发布版 full 回归**：14396 字 / 8 个二级标题 / 46 条来源（42 网页 + 4 知识库片段）/ 引用率 100% / 零悬空引用 / 零自造标注。

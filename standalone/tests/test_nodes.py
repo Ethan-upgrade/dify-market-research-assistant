@@ -205,5 +205,26 @@ class TestCiteTable(unittest.TestCase):
         self.assertNotIn("<!--", r["body"])
 
 
+class TestSourceOrder(unittest.TestCase):
+    """来源表排序：知识库 → 真实网页 → 引擎摘要垫底。"""
+
+    def test_engine_summaries_last(self):
+        sources = (
+            "K1. 旧报告 — kb://1\n"
+            "1. Tavily 引擎摘要（检索式A） — Tavily answer 字段\n"
+            "2. 真实来源A — https://a/2\n"
+            "3. Tavily 引擎摘要（检索式B） — Tavily answer 字段\n"
+            "4. 真实来源B — https://a/4"
+        )
+        body = "结论[1][2][3][4][K1]"
+        r = nodes.build_cited_table(body, sources)
+        lines = r["cited_list"].split("\n")
+        self.assertTrue(lines[0].startswith("K1."))
+        self.assertIn("真实来源A", lines[1])
+        self.assertIn("真实来源B", lines[2])
+        self.assertIn("引擎摘要", lines[3])
+        self.assertIn("引擎摘要", lines[4])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
