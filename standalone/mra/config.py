@@ -98,6 +98,16 @@ class Scope:
     source_pref: str = "不限"
     depth: str = "3"
 
+    def __post_init__(self):
+        # 宽容归一：用户写「全球」「全部」「教育」都能落到合法枚举
+        from .aliases import (MARKET_ALIASES, INDUSTRY_ALIASES, PURPOSE_ALIASES,
+                              TIME_ALIASES, SOURCE_ALIASES, normalize)
+        self.market = normalize(self.market, MARKET_OPTIONS, MARKET_ALIASES, "地区")
+        self.industry = normalize(self.industry, INDUSTRY_OPTIONS, INDUSTRY_ALIASES, "行业")
+        self.purpose = normalize(self.purpose, PURPOSE_OPTIONS, PURPOSE_ALIASES, "目的")
+        self.time_range = normalize(self.time_range, TIME_OPTIONS, TIME_ALIASES, "时间范围")
+        self.source_pref = normalize(self.source_pref, SOURCE_OPTIONS, SOURCE_ALIASES, "数据源偏好")
+
     def rounds(self) -> int:
         try:
             n = int(str(self.depth).strip())

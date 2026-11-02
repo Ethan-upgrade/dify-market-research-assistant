@@ -14,6 +14,8 @@ import sys
 
 from . import __version__
 from .config import RuntimeConfig, Scope, MARKET_OPTIONS, INDUSTRY_OPTIONS, PURPOSE_OPTIONS, TIME_OPTIONS, SOURCE_OPTIONS, DEPTH_OPTIONS
+from .aliases import (MARKET_ALIASES, INDUSTRY_ALIASES, PURPOSE_ALIASES,
+                      TIME_ALIASES, SOURCE_ALIASES, normalize)
 from .llm import LLM, LLMError
 from .pipeline import Pipeline
 from .search import SearchError, build_backend
@@ -27,11 +29,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("query", nargs="?", help="调研需求，一句话；用 -f 从文件读")
     p.add_argument("-f", "--file", help="从文本文件读取调研需求")
-    p.add_argument("--market", default="不限（全球为主）", choices=MARKET_OPTIONS, help="调研范围（地区）")
-    p.add_argument("--industry", default="不限", choices=INDUSTRY_OPTIONS, help="行业类型")
-    p.add_argument("--purpose", default="竞品分析", choices=PURPOSE_OPTIONS, help="调研目的")
-    p.add_argument("--time", dest="time_range", default="近三年", choices=TIME_OPTIONS, help="时间范围")
-    p.add_argument("--source", dest="source_pref", default="不限", choices=SOURCE_OPTIONS, help="数据源偏好")
+    def _mk(options, aliases, field):
+        def _f(v):
+            try:
+                return normalize(v, options, aliases, field)
+            except ValueError as e:
+                raise argparse.ArgumentTypeError(str(e))
+        return _f
+
+    p.add_argument("--market", default="不限（全球为主）", type=_mk(MARKET_OPTIONS, MARKET_ALIASES, "地区"),
+                   metavar="地区", help="调研范围（地区）：" + "/".join(MARKET_OPTIONS) + "；也接受 全球/中国/北美 等简写")
+    p.add_argument("--industry", default="不限", type=_mk(INDUSTRY_OPTIONS, INDUSTRY_ALIASES, "行业"),
+                   metavar="行业", help="行业类型；也接受 教育/消费品/科技 等简写")
+    p.add_argument("--purpose", default="竞品分析", type=_mk(PURPOSE_OPTIONS, PURPOSE_ALIASES, "目的"),
+                   metavar="目的", help="调研目的；也接受 全部/综合/概览 等简写")
+    p.add_argument("--time", dest="time_range", default="近三年", type=_mk(TIME_OPTIONS, TIME_ALIASES, "时间范围"),
+                   metavar="时间", help="时间范围；也接受 3年/近三年 等写法")
+    p.add_argument("--source", dest="source_pref", default="不限", type=_mk(SOURCE_OPTIONS, SOURCE_ALIASES, "数据源"),
+                   metavar="来源", help="数据源偏好；也接受 券商/官方/财报/新闻 等简写")
     p.add_argument("--depth", default="3", choices=DEPTH_OPTIONS, help="检索深度（轮数）")
 
     p.add_argument("--search", dest="search_backend", default=None, choices=["tavily", "fixture"], help="检索后端")
