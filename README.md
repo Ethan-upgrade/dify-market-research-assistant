@@ -3,6 +3,7 @@
 把一句话需求（「调研 Nespresso 胶囊咖啡在中国市场的竞争格局」）变成一份**带编号引用、可溯源**的七章市场调研报告。
 
 > 仓库地址：https://github.com/Ethan-upgrade/dify-market-research-assistant
+> 完整链路（一句话 → 报告 → 体检 → 溯源 → 交付）见 [WORKFLOW.md](WORKFLOW.md)。
 > 上传/改名/私有化/开 CI 的操作见 [`docs/08-publish-github.md`](docs/08-publish-github.md)。
 
 本仓库提供**两种完全等价的实现**，你可以只用其中一种：
