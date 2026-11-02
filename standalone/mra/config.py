@@ -99,14 +99,24 @@ class Scope:
     depth: str = "3"
 
     def __post_init__(self):
-        # 宽容归一：用户写「全球」「全部」「教育」都能落到合法枚举
+        # 宽容归一：能映射就映射；映射不了就原样保留成「自定义口径」，绝不报错退出
         from .aliases import (MARKET_ALIASES, INDUSTRY_ALIASES, PURPOSE_ALIASES,
                               TIME_ALIASES, SOURCE_ALIASES, normalize)
-        self.market = normalize(self.market, MARKET_OPTIONS, MARKET_ALIASES, "地区")
-        self.industry = normalize(self.industry, INDUSTRY_OPTIONS, INDUSTRY_ALIASES, "行业")
-        self.purpose = normalize(self.purpose, PURPOSE_OPTIONS, PURPOSE_ALIASES, "目的")
-        self.time_range = normalize(self.time_range, TIME_OPTIONS, TIME_ALIASES, "时间范围")
-        self.source_pref = normalize(self.source_pref, SOURCE_OPTIONS, SOURCE_ALIASES, "数据源偏好")
+        self.custom_fields = []
+        pairs = (
+            ("market", MARKET_OPTIONS, MARKET_ALIASES, "地区"),
+            ("industry", INDUSTRY_OPTIONS, INDUSTRY_ALIASES, "行业"),
+            ("purpose", PURPOSE_OPTIONS, PURPOSE_ALIASES, "目的"),
+            ("time_range", TIME_OPTIONS, TIME_ALIASES, "时间范围"),
+            ("source_pref", SOURCE_OPTIONS, SOURCE_ALIASES, "数据源偏好"),
+        )
+        for field, options, aliases, label in pairs:
+            raw = getattr(self, field)
+            try:
+                setattr(self, field, normalize(raw, options, aliases, label))
+            except ValueError:
+                setattr(self, field, (raw or "").strip())
+                self.custom_fields.append(field)
 
     def rounds(self) -> int:
         try:

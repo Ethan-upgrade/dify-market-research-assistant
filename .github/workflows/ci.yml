@@ -32,6 +32,7 @@ jobs:
           python tests/test_fetch.py
           python tests/test_serve.py
           python tests/test_aliases.py
+          python tests/test_autoscope.py
           python tests/test_verify.py
           python tests/test_search.py
 

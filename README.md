@@ -164,6 +164,16 @@ GET /jobs/a1b2c3
 **抓取缓存（3.11）**：`verify` / `trace` 抓过的页面默认缓存 24 小时（`.cache/fetch/`，按 URL 哈希存）。
 同一份报告反复体检不必重抓：实测单页 3.07s → 0.00s。`MRA_FETCH_TTL=0` 关闭。
 
+**智能识别范围（3.14）**：
+
+```powershell
+python -m mra "德语学习周期、学习方法与未来应用前景，尤其以职业为导向" --smart
+# 智能识别范围：industry=教育｜purpose=行业概览
+```
+
+`--smart` 用关键词规则，**0 token、毫秒级**；`--auto-scope` 用小模型调用推断（约 1~2k tokens），更准。
+没认出来的词不会再报错退出，而是按「自定义口径」原样写进检索式。
+
 **篇幅压缩（3.13，可选）**：`--max-chars 12000` 会多调一次模型做压缩，但**实测效果有限**
 （17216 → 15049，仅 -2.5%，且常被「丢引用/结构不合规」的守卫拒绝）。报告本身没有重复段落，
 所以默认关闭（`--max-chars 0`）；建议靠 prompt 控制在 8000~16000 字，而不是事后压缩。
@@ -183,6 +193,7 @@ tools\install-serve-task.ps1 -Remove         # 撤销
 |---|---|---|
 | 命令行 | `python -m mra "调研 XX 市场" --depth 3 -o r.md` | 随手问 |
 | 参数简写 | `--market 全球 --industry 教育 --purpose 全部` | 不用背枚举值（3.13.1） |
+| 自动识别 | `python -m mra "德语学习前景" --smart` | 从需求里猜范围，0 token（3.14） |
 | 双击 | `tools\run-report.cmd` | 不想敲命令，问几个问题就出报告 |
 | 批量 | 编辑 `topics.txt` → `tools\batch-run.cmd` | 一次跑一串主题 |
 | 定时 | `tools\install-task.ps1 -Time 09:00 -Weekly Monday` | 周报自动出 |
@@ -207,7 +218,7 @@ tools\install-serve-task.ps1 -Remove         # 撤销
 │  │  ├─ llm.py        # OpenAI 兼容 chat 客户端（含重试）
 │  │  ├─ pipeline.py   # 编排：需求解析 → 递归检索 → 撰写 → 引用表
 │  │  └─ cli.py        # 命令行入口
-│  └─ tests/           # 143 个用例：节点/编排/体检/整理/链接/溯源/抓取/PDF/服务/压缩
+│  └─ tests/           # 153 个用例：节点/编排/体检/整理/链接/溯源/抓取/PDF/服务/压缩
 ├─ docs/                                  # 部署 / 架构 / 范围口径 / 排错 / 发布
 ├─ examples/                              # 实跑报告样例
 ├─ screenshots/                           # Dify 工作流截图
@@ -285,7 +296,7 @@ python scripts\verify_published.py --base http://127.0.0.1:8080 --mode smoke
 
 ## 6. 已验证什么
 
-- `standalone/tests` **143 个用例全绿**（节点逻辑、编排、`.env`、体检、引用整理、链接体检、数字溯源、抓取引擎链、PDF 抽取、抓取缓存、HTTP 服务与异步任务、Tavily 契约）。
+- `standalone/tests` **153 个用例全绿**（节点逻辑、编排、`.env`、体检、引用整理、链接体检、数字溯源、抓取引擎链、PDF 抽取、抓取缓存、HTTP 服务与异步任务、Tavily 契约）。
 - **GitHub Actions 已跑通**（Python 3.9 / 3.11 / 3.13 三档 + DSL 结构校验），最近一次 push 为绿。
 - **仓库里的 v3 DSL 在 Dify 1.9.1 上实测**：导入 → 26 节点全部实例化 → 模型接线 → 发布成功 → smoke 验证通过（走追问分支、无控制标记泄漏）。
 - **已发布版 full 回归**：14396 字 / 8 个二级标题 / 46 条来源（42 网页 + 4 知识库片段）/ 引用率 100% / 零悬空引用 / 零自造标注。

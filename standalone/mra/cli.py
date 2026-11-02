@@ -31,23 +31,30 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-f", "--file", help="从文本文件读取调研需求")
     def _mk(options, aliases, field):
         def _f(v):
+            raw = (v or "").strip()
+            if not raw:
+                return raw
             try:
-                return normalize(v, options, aliases, field)
-            except ValueError as e:
-                raise argparse.ArgumentTypeError(str(e))
+                return normalize(raw, options, aliases, field)
+            except ValueError:
+                return raw          # 认不出就原样当「自定义口径」，交给 Scope 兜底
         return _f
 
-    p.add_argument("--market", default="不限（全球为主）", type=_mk(MARKET_OPTIONS, MARKET_ALIASES, "地区"),
+    p.add_argument("--market", default=None, type=_mk(MARKET_OPTIONS, MARKET_ALIASES, "地区"),
                    metavar="地区", help="调研范围（地区）：" + "/".join(MARKET_OPTIONS) + "；也接受 全球/中国/北美 等简写")
-    p.add_argument("--industry", default="不限", type=_mk(INDUSTRY_OPTIONS, INDUSTRY_ALIASES, "行业"),
+    p.add_argument("--industry", default=None, type=_mk(INDUSTRY_OPTIONS, INDUSTRY_ALIASES, "行业"),
                    metavar="行业", help="行业类型；也接受 教育/消费品/科技 等简写")
-    p.add_argument("--purpose", default="竞品分析", type=_mk(PURPOSE_OPTIONS, PURPOSE_ALIASES, "目的"),
+    p.add_argument("--purpose", default=None, type=_mk(PURPOSE_OPTIONS, PURPOSE_ALIASES, "目的"),
                    metavar="目的", help="调研目的；也接受 全部/综合/概览 等简写")
-    p.add_argument("--time", dest="time_range", default="近三年", type=_mk(TIME_OPTIONS, TIME_ALIASES, "时间范围"),
+    p.add_argument("--time", dest="time_range", default=None, type=_mk(TIME_OPTIONS, TIME_ALIASES, "时间范围"),
                    metavar="时间", help="时间范围；也接受 3年/近三年 等写法")
-    p.add_argument("--source", dest="source_pref", default="不限", type=_mk(SOURCE_OPTIONS, SOURCE_ALIASES, "数据源"),
+    p.add_argument("--source", dest="source_pref", default=None, type=_mk(SOURCE_OPTIONS, SOURCE_ALIASES, "数据源"),
                    metavar="来源", help="数据源偏好；也接受 券商/官方/财报/新闻 等简写")
     p.add_argument("--depth", default="3", choices=DEPTH_OPTIONS, help="检索深度（轮数）")
+    p.add_argument("--smart", action="store_true",
+                   help="从需求里自动猜范围（关键词规则，0 token）")
+    p.add_argument("--auto-scope", dest="auto_scope", action="store_true",
+                   help="用模型推断范围（多花一次小调用，约 1~2k tokens）")
 
     p.add_argument("--search", dest="search_backend", default=None, choices=["tavily", "fixture"], help="检索后端")
     p.add_argument("--fixture", default=None, help="fixture 语料路径")
@@ -104,11 +111,35 @@ def main(argv=None) -> int:
         print("缺少模型 Key：请设置 MRA_API_KEY（或 OPENAI_API_KEY / DEEPSEEK_API_KEY）", file=sys.stderr)
         return 2
 
-    scope = Scope(market=args.market, industry=args.industry, purpose=args.purpose,
-                  time_range=args.time_range, source_pref=args.source_pref, depth=args.depth)
-
     llm = LLM(cfg.base_url, cfg.api_key, cfg.model, cfg.temperature, cfg.max_tokens, cfg.timeout,
               verbose=not args.quiet)
+
+    # 范围解析优先级：显式参数 > 智能推断 > 默认值
+    auto = {}
+    if args.auto_scope:
+        from .autoscope import infer
+        auto = infer(query, llm)
+    elif args.smart:
+        from .autoscope import guess
+        auto = guess(query)
+    if auto and not args.quiet:
+        print("智能识别范围：" + "｜".join(f"{k}={v}" for k, v in auto.items()), file=sys.stderr)
+
+    def pick(explicit, key, default):
+        if explicit:
+            return explicit
+        return auto.get(key, default)
+
+    scope = Scope(
+        market=pick(args.market, "market", "不限（全球为主）"),
+        industry=pick(args.industry, "industry", "不限"),
+        purpose=pick(args.purpose, "purpose", "竞品分析"),
+        time_range=pick(args.time_range, "time_range", "近三年"),
+        source_pref=pick(args.source_pref, "source_pref", "不限"),
+        depth=args.depth,
+    )
+    if scope.custom_fields and not args.quiet:
+        print("注意：这些值不在标准选项里，将按「自定义口径」使用：" + "、".join(scope.custom_fields), file=sys.stderr)
     try:
         backend = build_backend(cfg)
     except SearchError as e:
